@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import init_supabase, close_supabase
-from app.routers import health
+from app.routers import health, document, chat
 
 
 @asynccontextmanager
@@ -39,3 +39,5 @@ app.add_middleware(
 
 # ── Routers ──────────────────────────────────────────────────────
 app.include_router(health.router)
+app.include_router(document.router)
+app.include_router(chat.router)

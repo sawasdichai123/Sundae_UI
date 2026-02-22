@@ -41,3 +41,6 @@ desktop.ini
 *.safetensors
 *.onnx
 models/
+
+# ── Docker ───────────────────────────────────────────────────────
+ollama_data/
