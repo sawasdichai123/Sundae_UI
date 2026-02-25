@@ -23,9 +23,10 @@ import uuid
 from typing import Optional
 
 import fitz  # PyMuPDF
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
+from app.core.auth import CurrentUser, require_approved
 from app.core.database import get_supabase
 from app.services.ai_models import get_embedding_service
 from app.services.chunking import create_parent_child_chunks
@@ -89,6 +90,7 @@ async def upload_document(
     file: UploadFile = File(...),
     organization_id: str = Form(...),
     bot_id: Optional[str] = Form(None),
+    user: CurrentUser = Depends(require_approved),
 ) -> UploadResponse:
     """Upload a PDF document and process it through the RAG pipeline.
 

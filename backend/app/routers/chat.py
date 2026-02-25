@@ -1,27 +1,34 @@
 """
-SUNDAE Backend — RAG Chat Router (Task 6.6.2)
+SUNDAE Backend — RAG Chat Router (Omnichannel)
 
 The main endpoint that triggers the full RAG pipeline:
-  1. Encode user query → embedding
-  2. Vector search → Top-K child chunks → parent mapping
-  3. Rerank parent chunks
-  4. Generate grounded response via LLM
+  1. Validate Bot (ownership + platform enablement)
+  2. Encode user query → embedding
+  3. Vector search → Top-K child chunks → parent mapping
+  4. Rerank parent chunks
+  5. Generate grounded response via LLM
+  6. Log conversation to chat_sessions / chat_messages
 
 SECURITY:
     organization_id is passed to EVERY service call.
     The backend uses Service Role Key (bypasses RLS), so explicit
     org filtering is the primary multi-tenant isolation mechanism.
+
+OMNICHANNEL:
+    Supports LINE, Web, and other platforms via platform_source.
+    Web chat requires is_web_enabled=True on the Bot record.
 """
 
 from __future__ import annotations
 
 import logging
 import uuid
-from typing import Optional
+from typing import Literal, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from app.core.auth import CurrentUser, require_approved
 from app.core.database import get_supabase
 from app.services.ai_models import get_embedding_service, get_reranker_service
 from app.services.llm_generator import generate_response
@@ -36,10 +43,17 @@ router = APIRouter(prefix="/api/chat", tags=["Chat"])
 
 
 class ChatRequest(BaseModel):
-    """Request schema for the RAG chat endpoint."""
+    """Request schema for the omnichannel RAG chat endpoint."""
 
     user_query: str = Field(..., min_length=1, description="The user's question")
     organization_id: str = Field(..., description="UUID of the tenant organization")
+    bot_id: str = Field(..., description="UUID of the bot handling this chat")
+    platform_user_id: str = Field(
+        ..., description="User ID from the originating platform (LINE UID, web session, etc.)"
+    )
+    platform_source: Literal["line", "web", "other"] = Field(
+        default="web", description="Which platform this message comes from"
+    )
     session_id: Optional[str] = Field(
         None, description="Optional chat session ID for conversation continuity"
     )
@@ -61,14 +75,61 @@ class ChatResponse(BaseModel):
     sources: list[SourceChunk] = []
 
 
+# ── Bot Validation ───────────────────────────────────────────────
+
+
+async def _validate_bot(
+    bot_id: str, organization_id: str, platform_source: str
+) -> None:
+    """Validate bot ownership and platform enablement.
+
+    Raises:
+        HTTPException 404: Bot not found or doesn't belong to the org.
+        HTTPException 403: Web chat is disabled for this bot.
+    """
+    supabase = get_supabase()
+    query = (
+        supabase.table("bots")
+        .select("id, organization_id, is_web_enabled, is_active")
+        .eq("id", bot_id)
+        .eq("organization_id", organization_id)
+        .limit(1)
+    )
+    result = await query.execute()
+
+    if not result.data:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Bot '{bot_id}' not found in organization '{organization_id}'.",
+        )
+
+    bot = result.data[0]
+
+    if not bot.get("is_active", True):
+        raise HTTPException(
+            status_code=403,
+            detail="This bot is currently disabled.",
+        )
+
+    if platform_source == "web" and not bot.get("is_web_enabled", False):
+        raise HTTPException(
+            status_code=403,
+            detail="Web chat is disabled for this bot.",
+        )
+
+
 # ── Endpoint ─────────────────────────────────────────────────────
 
 
 @router.post("/ask", response_model=ChatResponse)
-async def ask_question(request: ChatRequest) -> ChatResponse:
+async def ask_question(
+    request: ChatRequest,
+    user: CurrentUser = Depends(require_approved),
+) -> ChatResponse:
     """Process a user question through the full RAG pipeline.
 
     Steps:
+      0. Validate the bot (ownership + platform check)
       1. Encode the query into a 1024-dim embedding
       2. Vector search for the Top-20 child chunks → map to parents
       3. Rerank parent chunks (threshold = 0.3)
@@ -76,21 +137,30 @@ async def ask_question(request: ChatRequest) -> ChatResponse:
       5. Optionally log the conversation to chat_sessions/chat_messages
 
     Args:
-        request: ChatRequest with user_query, organization_id, session_id.
+        request: ChatRequest with user_query, organization_id, bot_id,
+                 platform_user_id, platform_source, session_id.
 
     Returns:
         ChatResponse with the AI answer, session_id, and source references.
 
     Raises:
         HTTPException 400: Empty or invalid query.
+        HTTPException 403: Web chat disabled / bot inactive.
+        HTTPException 404: Bot not found.
         HTTPException 500: Pipeline processing failure.
     """
     user_query = request.user_query.strip()
     organization_id = request.organization_id
+    bot_id = request.bot_id
+    platform_user_id = request.platform_user_id
+    platform_source = request.platform_source
     session_id = request.session_id
 
     if not user_query:
         raise HTTPException(status_code=400, detail="user_query must not be empty.")
+
+    # ── Step 0: Validate Bot ────────────────────────────────────
+    await _validate_bot(bot_id, organization_id, platform_source)
 
     try:
         # ── Step 1: Encode query ────────────────────────────────
@@ -158,16 +228,18 @@ async def ask_question(request: ChatRequest) -> ChatResponse:
             len(answer),
         )
 
-        # ── Step 5: Log conversation (if session_id provided) ───
+        # ── Step 5: Log conversation ────────────────────────────
         if session_id:
             try:
                 supabase = get_supabase()
 
-                # Upsert chat session (update last_message_at)
+                # Upsert chat session with omnichannel fields
                 session_row = {
                     "id": session_id,
                     "organization_id": organization_id,
-                    "channel": "api",
+                    "bot_id": bot_id,
+                    "platform_user_id": platform_user_id,
+                    "platform_source": platform_source,
                     "last_message_at": "now()",
                 }
                 await (
