@@ -5,7 +5,7 @@
  * Updated for Omnichannel support (Web + LINE).
  */
 
-import apiClient, { getValidToken } from "./axios";
+import apiClient, { getValidToken, refreshTokenOnce } from "./axios";
 import type {
     Bot,
     ChatAskResponse,
@@ -119,6 +119,16 @@ export const chatApi = {
                 console.log("[askStream] Step 1 done, token:", token ? "YES" : "NO");
 
                 if (!token) {
+                    try {
+                        const { useToastStore } = await import("../store/toastStore");
+                        useToastStore.getState().addToast(
+                            "warning",
+                            "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่",
+                            8000,
+                        );
+                    } catch { /* ignore if toast not available */ }
+                    await new Promise((r) => setTimeout(r, 1500));
+                    window.location.href = "/login";
                     onError("Not authenticated");
                     return;
                 }
@@ -130,22 +140,50 @@ export const chatApi = {
 
                 console.log("[askStream] Sending fetch to", import.meta.env.VITE_API_BASE_URL);
                 const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8001";
-                const response = await fetch(`${baseUrl}/api/chat/ask/stream`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${token}`,
-                    },
-                    body: JSON.stringify({
-                        user_query: params.userQuery,
-                        organization_id: params.organizationId,
-                        bot_id: params.botId,
-                        platform_user_id: params.platformUserId,
-                        platform_source: params.platformSource || "web",
-                        session_id: params.sessionId,
-                    }),
-                    signal: controller.signal,
-                });
+
+                const payload = {
+                    user_query: params.userQuery,
+                    organization_id: params.organizationId,
+                    bot_id: params.botId,
+                    platform_user_id: params.platformUserId,
+                    platform_source: params.platformSource || "web",
+                    session_id: params.sessionId,
+                };
+
+                const doFetch = async (accessToken: string) => {
+                    return await fetch(`${baseUrl}/api/chat/ask/stream`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${accessToken}`,
+                        },
+                        body: JSON.stringify(payload),
+                        signal: controller.signal,
+                    });
+                };
+
+                let response = await doFetch(token);
+
+                // Retry once on 401 (expired access token) — align behavior with axios interceptor
+                if (response.status === 401) {
+                    const freshToken = await refreshTokenOnce();
+                    if (!freshToken) {
+                        try {
+                            const { useToastStore } = await import("../store/toastStore");
+                            useToastStore.getState().addToast(
+                                "warning",
+                                "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่",
+                                8000,
+                            );
+                        } catch { /* ignore if toast not available */ }
+                        // Small delay so the toast is visible before redirect
+                        await new Promise((r) => setTimeout(r, 1500));
+                        window.location.href = "/login";
+                        onError("Session expired (401)");
+                        return;
+                    }
+                    response = await doFetch(freshToken);
+                }
 
                 if (!response.ok) {
                     onError(`HTTP ${response.status}`);

@@ -62,6 +62,8 @@ function statusConfig(status: string) {
             return { label: "Active", className: "bg-emerald-50 text-emerald-600", dot: "bg-emerald-500" };
         case "human_takeover":
             return { label: "รับเรื่อง", className: "bg-amber-50 text-amber-600", dot: "bg-amber-500" };
+        case "helped":
+            return { label: "ช่วยเหลือเรียบร้อย", className: "bg-blue-50 text-blue-600", dot: "bg-blue-500" };
         case "resolved":
             return { label: "ปิดแล้ว", className: "bg-steel-100 text-steel-500", dot: "bg-steel-400" };
         default:
@@ -96,27 +98,43 @@ export default function InboxPage() {
     const [sendingReply, setSendingReply] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const replyInputRef = useRef<HTMLTextAreaElement>(null);
+    const lastPollTimestampRef = useRef<string | null>(null);
+    const hasLoadedSessionsOnceRef = useRef(false);
 
     const user = useAuthStore((s) => s.user);
     const orgId = (user?.organization_id ?? import.meta.env.VITE_DEFAULT_ORG_ID) as string;
 
     // ── Load sessions ───────────────────────────────────────────
-    const loadSessions = useCallback(async () => {
-        if (!orgId) { setLoading(false); return; }
-        setLoading(true);
+    const loadSessions = useCallback(async (opts?: { silent?: boolean }) => {
+        const silent = opts?.silent ?? false;
+        if (!orgId) {
+            if (!silent) setLoading(false);
+            return;
+        }
+        if (!silent && !hasLoadedSessionsOnceRef.current) setLoading(true);
         try {
             const res = await inboxApi.listSessions(orgId);
             setSessions(res.data);
+            hasLoadedSessionsOnceRef.current = true;
         } catch (err) {
             console.error("[Inbox] Failed to load sessions:", err);
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     }, [orgId]);
 
     useEffect(() => {
         loadSessions();
     }, [loadSessions]);
+
+    // ── Real-time: Poll sessions list every 3s (new handoff sessions, status updates) ──
+    useEffect(() => {
+        if (!orgId) return;
+        const interval = setInterval(() => {
+            loadSessions({ silent: true });
+        }, 3000);
+        return () => clearInterval(interval);
+    }, [orgId, loadSessions]);
 
     // ── Load messages for selected session ──────────────────────
     const loadMessages = useCallback(async (session: Session) => {
@@ -125,6 +143,9 @@ export default function InboxPage() {
         try {
             const res = await inboxApi.getMessages(session.id, orgId);
             setMessages(res.data);
+            // initialize poll cursor to the last message timestamp
+            const last = res.data?.[res.data.length - 1];
+            lastPollTimestampRef.current = last?.created_at ?? null;
         } catch (err) {
             console.error("[Inbox] Failed to load messages:", err);
         } finally {
@@ -154,19 +175,42 @@ export default function InboxPage() {
         }
     };
 
-    // ── Auto-refresh messages every 5s when a session is selected ──
+    // ── Real-time: Poll only NEW messages every 2s + sync session status ──
     useEffect(() => {
         if (!selectedSession || !orgId) return;
+
         const interval = setInterval(async () => {
             try {
-                const res = await inboxApi.getMessages(selectedSession.id, orgId);
-                setMessages(res.data);
+                const after = lastPollTimestampRef.current || "1970-01-01T00:00:00Z";
+                const res = await inboxApi.getNewMessages(selectedSession.id, orgId, after);
+                const pollData = res.data;
+
+                // Sync current session status (backend may change it)
+                const backendStatus = (pollData as any)?.session_status as string | undefined;
+                if (backendStatus && backendStatus !== selectedSession.status) {
+                    setSelectedSession((prev) => (prev ? { ...prev, status: backendStatus } : prev));
+                    // Also refresh list so badge updates
+                    loadSessions();
+                }
+
+                const newMsgs = (pollData as any)?.messages as Message[] | undefined;
+                if (newMsgs && newMsgs.length > 0) {
+                    setMessages((prev) => {
+                        const existingIds = new Set(prev.map((m) => m.id));
+                        const unique = newMsgs.filter((m) => !existingIds.has(m.id));
+                        return unique.length > 0 ? [...prev, ...unique] : prev;
+                    });
+                    lastPollTimestampRef.current = newMsgs[newMsgs.length - 1].created_at;
+                    // sessions list should reflect last_message_at
+                    loadSessions();
+                }
             } catch (err) {
-                console.error("[Inbox] Auto-refresh failed:", err);
+                console.error("[Inbox] Poll new messages failed:", err);
             }
-        }, 5000);
+        }, 2000);
+
         return () => clearInterval(interval);
-    }, [selectedSession, orgId]);
+    }, [selectedSession, orgId, loadSessions]);
 
     // ── Send admin reply ─────────────────────────────────────────
     const handleSendReply = async () => {
@@ -176,6 +220,7 @@ export default function InboxPage() {
         try {
             const res = await inboxApi.sendMessage(selectedSession.id, orgId, text);
             setMessages((prev) => [...prev, res.data]);
+            lastPollTimestampRef.current = res.data.created_at;
             setReplyText("");
             if (replyInputRef.current) replyInputRef.current.style.height = "auto";
             // Update session status locally if it changed
@@ -317,12 +362,20 @@ export default function InboxPage() {
                                         🤖 คืนร่างให้ AI
                                     </button>
                                 )}
-                                {selectedSession.status !== "resolved" && (
+                                {selectedSession.status !== "resolved" && selectedSession.status !== "helped" && (
                                     <button
-                                        onClick={() => handleStatusChange("resolved")}
-                                        className="px-3 py-1.5 bg-steel-100 text-steel-600 text-xs font-medium rounded-lg hover:bg-steel-200 transition-colors cursor-pointer"
+                                        onClick={() => handleStatusChange("helped")}
+                                        className="px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"
                                     >
-                                        ✓ ปิดเคส
+                                        ✓ ช่วยเหลือเรียบร้อย
+                                    </button>
+                                )}
+                                {selectedSession.status === "helped" && (
+                                    <button
+                                        onClick={() => handleStatusChange("active")}
+                                        className="px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-medium rounded-lg hover:bg-emerald-100 transition-colors cursor-pointer"
+                                    >
+                                        🔄 ยังต้องช่วยเหลือ
                                     </button>
                                 )}
                                 {selectedSession.status === "resolved" && (

@@ -281,6 +281,16 @@ export default function WebChatPage() {
                                 timestamp: new Date(),
                             },
                         ]);
+                    } else if (backendStatus === "helped") {
+                        setMessages((prev) => [
+                            ...prev,
+                            {
+                                id: crypto.randomUUID(),
+                                role: "system",
+                                content: "เจ้าหน้าที่ช่วยเหลือเรียบร้อยแล้ว — หากต้องการติดต่ออีกครั้งสามารถกดเรียกเจ้าหน้าที่ได้",
+                                timestamp: new Date(),
+                            },
+                        ]);
                     } else if (backendStatus === "resolved") {
                         setMessages((prev) => [
                             ...prev,
@@ -519,18 +529,9 @@ export default function WebChatPage() {
             {sidebarOpen && (
                 <aside className="w-72 border-r border-steel-100 bg-white flex flex-col shrink-0">
                     {/* Sidebar Header */}
-                    <div className="px-4 py-3.5 border-b border-steel-100 flex items-center justify-between">
+                    <div className="px-4 h-14 border-b border-steel-100 flex items-center justify-between">
                         <h2 className="text-sm font-semibold text-steel-800">ประวัติแชท</h2>
                         <div className="flex items-center gap-1">
-                            <button
-                                onClick={handleNewChat}
-                                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-steel-600 bg-steel-50 border border-steel-200 rounded-lg hover:bg-steel-100 transition-colors cursor-pointer"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
-                                    <path d="M8.75 3.75a.75.75 0 0 0-1.5 0v3.5h-3.5a.75.75 0 0 0 0 1.5h3.5v3.5a.75.75 0 0 0 1.5 0v-3.5h3.5a.75.75 0 0 0 0-1.5h-3.5v-3.5Z" />
-                                </svg>
-                                ใหม่
-                            </button>
                             <button
                                 onClick={() => setSidebarOpen(false)}
                                 className="p-1.5 text-steel-400 hover:text-steel-600 transition-colors cursor-pointer"
@@ -578,7 +579,7 @@ export default function WebChatPage() {
             {/* ── Main Chat Area ──────────────────────────────────── */}
             <div className="flex-1 flex flex-col min-w-0">
                 {/* ── Toolbar: sidebar toggle + bot selector ──────────── */}
-                <div className="bg-white border-b border-steel-100 px-4 py-2 flex items-center gap-2">
+                <div className="bg-white border-b border-steel-100 px-4 h-14 flex items-center gap-2">
                     {!sidebarOpen && (
                         <button
                             onClick={() => setSidebarOpen(true)}
@@ -831,7 +832,7 @@ export default function WebChatPage() {
                     <div className="bg-white/80 backdrop-blur-xl border-t border-steel-100">
                         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4">
                             {/* Request Human button — only when session has messages & still active & not requesting */}
-                            {messages.length > 0 && sessionStatus === "active" && !isLoading && !handoffRequesting && (
+                            {messages.length > 0 && (sessionStatus === "active" || sessionStatus === "helped") && !isLoading && !handoffRequesting && (
                                 <div className="flex justify-center mb-3">
                                     <button
                                         onClick={handleRequestHuman}

@@ -26,12 +26,29 @@ const apiClient = axios.create({
 // fires. The second caller waits for the first to complete.
 let refreshPromise: Promise<string | null> | null = null;
 
-async function refreshTokenOnce(): Promise<string | null> {
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+    let timeoutId: number | undefined;
+    const timeoutPromise = new Promise<T>((_resolve, reject) => {
+        timeoutId = window.setTimeout(() => {
+            reject(new Error(`${label} timed out after ${ms}ms`));
+        }, ms);
+    });
+
+    return Promise.race([promise, timeoutPromise]).finally(() => {
+        if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    });
+}
+
+export async function refreshTokenOnce(): Promise<string | null> {
     if (refreshPromise) return refreshPromise;
 
     refreshPromise = (async () => {
         try {
-            const { data, error } = await supabase.auth.refreshSession();
+            const { data, error } = await withTimeout(
+                supabase.auth.refreshSession(),
+                10_000,
+                "supabase.auth.refreshSession()"
+            );
             if (error || !data?.session) {
                 console.warn("[Auth] Token refresh failed:", error?.message);
                 return null;
@@ -53,7 +70,11 @@ async function refreshTokenOnce(): Promise<string | null> {
 // Exported so askStream (raw fetch) can reuse the same refresh logic.
 export async function getValidToken(): Promise<string | null> {
     try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await withTimeout(
+            supabase.auth.getSession(),
+            10_000,
+            "supabase.auth.getSession()"
+        );
         if (!session) return null;
 
         const expiresAt = session.expires_at ?? 0;

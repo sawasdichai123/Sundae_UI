@@ -1,7 +1,7 @@
 # SUNDAE — รายงานสรุปโปรเจกต์ฉบับเต็ม
 
 > **วันที่รายงานครั้งแรก**: 25 กุมภาพันธ์ 2569
-> **อัพเดทล่าสุด**: 8 มีนาคม 2569
+> **อัพเดทล่าสุด**: 11 มีนาคม 2569
 > **Project**: SUNDAE — Enterprise AI Chatbot Platform
 > **Stack**: FastAPI + React + Supabase + Ollama
 
@@ -188,7 +188,102 @@ Layer 3 (supabaseClient.ts)
 
 **Mutex**: `refreshPromise` ป้องกัน concurrent refresh ที่จะ invalidate refresh token
 
+### 3.3 บั๊ก JWT หมดอายุแล้วหน้าเว็บค้าง (401) — Patch Summary ✅
+
+**อาการที่พบ**
+
+- **[อาการ]** เปิดหน้าเว็บทิ้งไว้สักพัก → เริ่มกดใช้งานต่อไม่ได้/ส่งแชทไม่ได้ → Network ขึ้น `401 Unauthorized` หลาย endpoint พร้อมกัน
+- **[อาการ]** ในหน้า Web Chat จะเห็น error เช่น `Not authenticated` และบางครั้งเหมือน UI “ค้าง” จนต้องกด Refresh เพื่อให้โหลด token ใหม่
+
+**สาเหตุหลัก (Root Cause)**
+
+- **[สาเหตุ]** เส้นทาง SSE streaming (`chatApi.askStream`) ใช้ `fetch` (ไม่ผ่าน axios interceptor)
+- **[สาเหตุ]** การดึง session/token จาก Supabase (`getSession()`/`refreshSession()`) เคยมีโอกาส “ค้าง/ไม่ตอบกลับ” หรือคืน `session = null` หลัง idle/sleep/network ทำให้ไม่มี `Authorization` header แล้ว API 401 รัว ๆ
+- **[ผล]** UI ฝั่งหน้าแชทตั้ง `isLoading=true` แล้วรอ callback (`onDone/onError`) หากโค้ดค้างก่อนเรียก callback จะดูเหมือนหน้าเว็บค้าง
+
+**สิ่งที่แก้ไข (ไฟล์ + พฤติกรรม)**
+
+- **[frontend/src/api/axios.ts]**
+  - เพิ่ม timeout (`withTimeout` 10s) ครอบ `supabase.auth.getSession()` และ `supabase.auth.refreshSession()` เพื่อกัน await ค้าง
+  - export `refreshTokenOnce()` เพื่อให้ flow ที่ไม่ได้ใช้ axios (SSE) reuse refresh mutex เดียวกัน
+
+- **[frontend/src/api/endpoints.ts]** (เฉพาะ `chatApi.askStream`)
+  - ถ้า `getValidToken()` ได้ `null` → toast “เซสชันหมดอายุ” → redirect `/login` (ไม่ต้องกด Refresh เอง)
+  - ถ้า `fetch` ได้ `401` → `refreshTokenOnce()` → retry 1 ครั้ง
+  - ถ้า refresh fail → toast + redirect `/login`
+
+- **[frontend/src/api/supabaseClient.ts]** (Token keep-alive)
+  - เพิ่ม timeout 10s ครอบ `getSession()`/`refreshSession()`
+  - เพิ่ม mutex `refreshPromise` กัน refresh ซ้อน
+  - เพิ่ม fail-safe: ถ้า `session` เป็น `null` หรือ refresh fail ต่อเนื่อง (>= 2 ครั้ง) → `signOut()` + ล้าง key `sb-*` + redirect `/login`
+
+**ผลลัพธ์ที่คาดหวังหลังแก้**
+
+- **[expected]** ถ้า access token หมดอายุแต่ refresh ยังใช้ได้ → ระบบ refresh แล้วใช้งานต่อเนื่องได้
+- **[expected]** ถ้า refresh token ตาย/ได้ session = null → ระบบจะเด้งไป `/login` อัตโนมัติ (ไม่ค้าง และไม่ต้อง Refresh หน้าเอง)
+
+**วิธีทดสอบ**
+
+- **[ทดสอบ]** เปิด `/chat` ทิ้งไว้จน token ใกล้หมดอายุ แล้วลองส่งข้อความ
+- **[ทดสอบ]** สลับเน็ต/ปล่อยเครื่อง sleep แล้วกลับมา ลองส่งข้อความ
+- **[ทดสอบ]** ดูใน Network ว่าถ้ามี `401` จะ redirect ไป `/login` และไม่ค้างหน้าเดิม
+
 ---
+
+### 3.4 Admin Inbox Realtime + สถานะช่วยเหลือเรียบร้อย (helped) — Patch Summary ✅
+
+**เป้าหมาย**
+
+- **[เป้าหมาย]** เมื่อผู้ใช้กดเรียก Admin → หน้า Inbox ของ Admin ต้องเห็น session ใหม่/ข้อความใหม่แบบอัตโนมัติ
+- **[เป้าหมาย]** Admin กด “รับเรื่อง” แล้วคุยแทน bot ได้ทันที
+- **[เป้าหมาย]** เปลี่ยนปุ่ม “ปิดเคส” เป็น “ช่วยเหลือเรียบร้อย” เพื่อไม่ล็อก user (ยังใช้งานแชทเดิม + เรียก admin ได้อีก)
+
+**สิ่งที่แก้ไข (ไฟล์ + พฤติกรรม)**
+
+- **[frontend/src/pages/InboxPage.tsx]**
+  - เพิ่ม polling:
+    - session list ทุก 3s (silent refresh ไม่กระพริบ loading)
+    - new messages ทุก 2s ผ่าน `/api/inbox/sessions/{id}/messages/new`
+  - เพิ่มสถานะ `helped` (label: “ช่วยเหลือเรียบร้อย”) และเปลี่ยนปุ่มจาก “ปิดเคส” → “ช่วยเหลือเรียบร้อย”
+
+- **[frontend/src/pages/WebChatPage.tsx]**
+  - `helped` ถือว่า “ยังใช้งานได้” เหมือน `active`:
+    - input ไม่ถูกปิด
+    - user ยังสามารถกด “ขอพูดคุยกับเจ้าหน้าที่” ได้
+  - ถ้า backend เปลี่ยนสถานะเป็น `helped` จะขึ้น system message แจ้งว่า “ช่วยเหลือเรียบร้อยแล้ว…“
+
+- **[frontend/src/types/index.ts]**
+  - เพิ่ม `SessionStatus = "active" | "human_takeover" | "helped" | "resolved"`
+
+- **[backend/app/routers/inbox.py]**
+  - เพิ่ม `helped` ในสถานะที่อนุญาตสำหรับ update status
+  - ปรับ behavior: ถ้า session เป็น `helped` แล้ว admin ส่งข้อความ → auto กลับไป `human_takeover`
+
+**SQL ที่ต้องรันเพิ่ม (สำคัญ)**
+
+- **[backend/sql/010_add_helped_status.sql]**
+  - อัปเดต `CHECK constraint` ของ `chat_sessions.status` ให้รองรับค่า `helped`
+
+---
+
+### 3.5 สลับหน้า Bots → Inbox แล้วค้าง/เด้งกลับ Dashboard — Patch Summary ✅
+
+**อาการที่พบ**
+
+- **[อาการ]** สลับหน้าจาก `Bots` ไป `Inbox` → หน้า Inbox โหลดไม่ขึ้น/ใช้งานไม่ได้ จนต้องกด Refresh
+- **[อาการ]** บางครั้งรอสักพักแล้วเหมือน “refresh เอง” และ/หรือถูกพากลับไปหน้า Dashboard
+
+**สาเหตุหลัก (Root Cause)**
+
+- **[สาเหตุ]** `/inbox` เป็น route ที่จำกัดสิทธิ์ (admin-only)
+- **[สาเหตุ]** ตอน navigate ข้ามหน้า บางจังหวะ `isAuthenticated = true` แล้ว แต่ `user.role` ยังไม่ถูกโหลด (กำลัง `fetchProfile()`)
+- **[ผล]** Route guard ประเมิน role เป็น `undefined` ชั่วคราว ทำให้เกิด routing ที่ไม่เสถียร/ค้าง/ต้อง refresh เพื่อให้ state กลับมาครบ
+
+**วิธีแก้ (ไฟล์ + พฤติกรรม)**
+
+- **[frontend/src/components/ProtectedRoute.tsx]**
+  - ถ้า route มี `allowedRoles` แต่ `role` ยังไม่มา → แสดง loading state “กำลังโหลดสิทธิ์การใช้งาน...”
+  - รอจน role โหลดเสร็จแล้วค่อยตัดสินใจอนุญาต/redirect
 
 ## 4. Supabase Auth Integration
 
@@ -565,6 +660,7 @@ WHERE email = 'sawasdichai.amor@bumail.net' AND is_approved = false;
 | 007 | Admin role in messages | ✅ รันแล้ว | Human handoff ตอบกลับได้ |
 | 008 | Fix organizations RLS | ✅ รันแล้ว | แก้ 406 error บน organizations |
 | 009 | Fix UPDATE RLS + approve | ✅ รันแล้ว | แก้ approve ไม่ทำงาน |
+| 010 | Add helped status | 🟡 ต้องรัน | เพิ่มสถานะ `helped` (ช่วยเหลือเรียบร้อย) ให้ chat_sessions.status |
 
 ---
 
@@ -646,6 +742,9 @@ LLM_MODEL=qwen3:14b    # ถ้ามี RAM 16 GB
 ```sql
 -- Migration 009: แก้ RLS UPDATE + approve user
 -- ไฟล์: backend/sql/009_fix_user_profiles_rls_update.sql
+
+-- Migration 010: เพิ่มสถานะ helped (ช่วยเหลือเรียบร้อย)
+-- ไฟล์: backend/sql/010_add_helped_status.sql
 ```
 
 ### คำสั่ง Run Development

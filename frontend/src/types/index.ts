@@ -62,7 +62,7 @@ export interface Document {
 // ── Chat ────────────────────────────────────────────────────────
 
 export type PlatformSource = "line" | "web" | "other";
-export type SessionStatus = "active" | "human_takeover" | "resolved";
+export type SessionStatus = "active" | "human_takeover" | "helped" | "resolved";
 
 export interface ChatSession {
     id: string;

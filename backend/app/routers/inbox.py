@@ -250,7 +250,7 @@ async def update_session_status(
         - human_takeover: A human agent has taken over
         - resolved: The session is closed
     """
-    valid_statuses = {"active", "human_takeover", "resolved"}
+    valid_statuses = {"active", "human_takeover", "helped", "resolved"}
     if body.status not in valid_statuses:
         raise HTTPException(
             status_code=400,
@@ -321,7 +321,7 @@ async def send_admin_message(
 
         # Auto-escalate to human_takeover if currently active
         update_data: dict = {"last_message_at": "now()"}
-        if current_status == "active":
+        if current_status in {"active", "helped"}:
             update_data["status"] = "human_takeover"
 
         await (

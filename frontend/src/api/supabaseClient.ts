@@ -50,10 +50,81 @@ export const supabase = createClient(
 // Track the last successful refresh time
 let lastRefreshTime = Date.now();
 
+let consecutiveRefreshFailures = 0;
+
+let refreshPromise: Promise<void> | null = null;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+    let timeoutId: number | undefined;
+    const timeoutPromise = new Promise<T>((_resolve, reject) => {
+        timeoutId = window.setTimeout(() => {
+            reject(new Error(`${label} timed out after ${ms}ms`));
+        }, ms);
+    });
+
+    return Promise.race([promise, timeoutPromise]).finally(() => {
+        if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    });
+}
+
+async function refreshOnce(): Promise<void> {
+    if (refreshPromise) return refreshPromise;
+
+    refreshPromise = (async () => {
+        try {
+            const { error } = await withTimeout(
+                supabase.auth.refreshSession(),
+                10_000,
+                "supabase.auth.refreshSession()"
+            );
+            if (error) {
+                console.warn("[Auth] Periodic refresh failed:", error.message);
+                consecutiveRefreshFailures += 1;
+            } else {
+                lastRefreshTime = Date.now();
+                consecutiveRefreshFailures = 0;
+            }
+        } catch (err) {
+            console.warn("[Auth] Periodic refresh timed out or errored:", err);
+            consecutiveRefreshFailures += 1;
+        } finally {
+            setTimeout(() => { refreshPromise = null; }, 1000);
+        }
+    })();
+
+    return refreshPromise;
+}
+
+async function forceReauth(): Promise<void> {
+    try {
+        await supabase.auth.signOut();
+    } catch {
+        // ignore
+    }
+    try {
+        Object.keys(localStorage).forEach((key) => {
+            if (key.startsWith("sb-")) localStorage.removeItem(key);
+        });
+    } catch {
+        // ignore
+    }
+    window.location.href = "/login";
+}
+
 async function refreshIfNeeded() {
     try {
-        const { data } = await supabase.auth.getSession();
-        if (!data.session) return;
+        const { data } = await withTimeout(
+            supabase.auth.getSession(),
+            10_000,
+            "supabase.auth.getSession()"
+        );
+        if (!data.session) {
+            consecutiveRefreshFailures += 1;
+            if (consecutiveRefreshFailures >= 2) {
+                await forceReauth();
+            }
+            return;
+        }
 
         const expiresAt = data.session.expires_at ?? 0;
         const now = Math.floor(Date.now() / 1000);
@@ -61,11 +132,9 @@ async function refreshIfNeeded() {
 
         // Refresh if less than 10 minutes remaining
         if (remainingSec < 600) {
-            const { error } = await supabase.auth.refreshSession();
-            if (error) {
-                console.warn("[Auth] Periodic refresh failed:", error.message);
-            } else {
-                lastRefreshTime = Date.now();
+            await refreshOnce();
+            if (consecutiveRefreshFailures >= 2) {
+                await forceReauth();
             }
         }
     } catch { /* silent */ }
