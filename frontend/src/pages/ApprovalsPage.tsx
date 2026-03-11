@@ -1,98 +1,37 @@
 /**
- * ApprovalsPage — Support/Admin user approval dashboard
+ * ApprovalsPage — Support/Admin user approval dashboard (Mock for Prototype)
  *
- * Connected to Supabase user_profiles table via RLS.
+ * Uses in-memory mock data instead of Supabase direct queries.
  * Support/Admin can view pending users and approve them.
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "../api/supabaseClient";
-import { useToastStore } from "../store/toastStore";
+import { MOCK_PENDING_USERS, MOCK_APPROVED_USERS } from "../mock/mockData";
 import type { UserProfile } from "../types";
 
 export default function ApprovalsPage() {
     const [pendingUsers, setPendingUsers] = useState<UserProfile[]>([]);
     const [approvedUsers, setApprovedUsers] = useState<UserProfile[]>([]);
     const [loading, setLoading] = useState(true);
-    const [approvingId, setApprovingId] = useState<string | null>(null);
-    const toast = useToastStore((s) => s.addToast);
 
-    // ── Load users from Supabase ────────────────────────────────
+    // ── In-memory mock state ────────────────────────────────────
+    const [mockPending] = useState<UserProfile[]>([...MOCK_PENDING_USERS]);
+    const [mockApproved] = useState<UserProfile[]>([...MOCK_APPROVED_USERS]);
+
+    // ── Load users from mock data ───────────────────────────────
     const loadUsers = useCallback(async () => {
         setLoading(true);
-        try {
-            // Pending users
-            const { data: pending, error: pendingErr } = await supabase
-                .from("user_profiles")
-                .select("*")
-                .eq("is_approved", false)
-                .order("created_at", { ascending: false });
-
-            if (pendingErr) {
-                console.error("[Approvals] Failed to load pending users:", pendingErr);
-            } else {
-                setPendingUsers(pending || []);
-            }
-
-            // Recently approved (last 20)
-            const { data: approved, error: approvedErr } = await supabase
-                .from("user_profiles")
-                .select("*")
-                .eq("is_approved", true)
-                .order("created_at", { ascending: false })
-                .limit(20);
-
-            if (approvedErr) {
-                console.error("[Approvals] Failed to load approved users:", approvedErr);
-            } else {
-                setApprovedUsers(approved || []);
-            }
-        } catch (err) {
-            console.error("[Approvals] Unexpected error:", err);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+        // Simulate async delay
+        await new Promise((r) => setTimeout(r, 300));
+        setPendingUsers([...mockPending]);
+        setApprovedUsers([...mockApproved]);
+        setLoading(false);
+    }, [mockPending, mockApproved]);
 
     useEffect(() => {
         loadUsers();
     }, [loadUsers]);
 
-    // ── Approve handler (real DB update) ────────────────────────
-    const handleApprove = async (userId: string) => {
-        setApprovingId(userId);
-        try {
-            const { data, error } = await supabase
-                .from("user_profiles")
-                .update({ is_approved: true })
-                .eq("id", userId)
-                .select("id, is_approved");
-
-            if (error) {
-                console.error("[Approvals] Approve failed:", error);
-                toast("error", "อนุมัติไม่สำเร็จ: " + error.message);
-                return;
-            }
-
-            // Verify the update actually happened (RLS may silently block)
-            if (!data || data.length === 0) {
-                console.error("[Approvals] Update returned no rows — RLS may have blocked the update");
-                toast("error", "อนุมัติไม่สำเร็จ: ไม่สามารถอัปเดตสิทธิ์ได้ (RLS policy blocked)");
-                return;
-            }
-
-            console.log("[Approvals] Approved user:", data[0]);
-            toast("success", "อนุมัติผู้ใช้สำเร็จ");
-
-            // Refresh lists
-            await loadUsers();
-        } catch (err) {
-            console.error("[Approvals] Unexpected error:", err);
-            toast("error", "เกิดข้อผิดพลาด กรุณาลองอีกครั้ง");
-        } finally {
-            setApprovingId(null);
-        }
-    };
 
     // ── Render ───────────────────────────────────────────────────
     return (
@@ -157,11 +96,11 @@ export default function ApprovalsPage() {
                                         {isNaN(new Date(user.created_at).getTime()) ? "—" : new Date(user.created_at).toLocaleDateString("th-TH")}
                                     </span>
                                     <button
-                                        onClick={() => handleApprove(user.id)}
-                                        disabled={approvingId === user.id}
-                                        className="px-4 py-2 bg-brand-400 text-steel-900 text-xs font-bold rounded-xl hover:bg-brand-500 transition-colors cursor-pointer shadow-sm disabled:opacity-50"
+                                        disabled
+                                        className="px-4 py-2 bg-brand-400 text-steel-900 text-xs font-bold rounded-xl shadow-sm opacity-50 cursor-not-allowed"
+                                        title="Mockup: ระบบทดสอบ ไม่สามารถอนุมัติได้"
                                     >
-                                        {approvingId === user.id ? "กำลัง..." : "อนุมัติ"}
+                                        อนุมัติ
                                     </button>
                                 </div>
                             ))}

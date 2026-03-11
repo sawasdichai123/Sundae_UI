@@ -1,7 +1,7 @@
 /**
- * DashboardPage — Role-aware with real-time data from API / Supabase
+ * DashboardPage — Role-aware with mock data for Prototype
  *
- * - Approved users/admins: see full metrics (live)
+ * - Approved users/admins: see full metrics (mock)
  * - Unapproved users:      see "Pending Approval" lockout
  * - Support:               see pending user count instead of chat-today
  */
@@ -10,8 +10,6 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore, selectIsSupport } from "../store/authStore";
 import { documentsApi, botsApi, inboxApi } from "../api/endpoints";
-import { supabase } from "../api/supabaseClient";
-import apiClient from "../api/axios";
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -110,13 +108,12 @@ export default function DashboardPage() {
         const orgId = (user?.organization_id ?? import.meta.env.VITE_DEFAULT_ORG_ID) as string;
         if (!orgId) return;
 
-        // Fetch documents, bots, sessions, and health in parallel
+        // Fetch documents, bots, sessions from mock API
         Promise.allSettled([
             documentsApi.list(orgId),
             botsApi.list(orgId),
             inboxApi.listSessions(orgId),
-            apiClient.get<{ services: HealthServices }>("/health"),
-        ]).then(([docsRes, botsRes, sessionsRes, healthRes]) => {
+        ]).then(([docsRes, botsRes, sessionsRes]) => {
             if (docsRes.status === "fulfilled") {
                 setDocCount((docsRes.value.data as any[]).length);
             }
@@ -136,25 +133,17 @@ export default function DashboardPage() {
                     }).length
                 );
                 setTakeoverCount(
-                    allSessions.filter((s: any) => s.status === "human_takeover").length
+                    allSessions.filter((s: any) => s.status === "active").length
                 );
             }
 
-            if (healthRes.status === "fulfilled") {
-                setServices((healthRes.value.data as any).services as HealthServices);
-            } else {
-                // Backend is up (we're here), but Ollama/Supabase unknown
-                setServices({ backend: true, ollama: false, supabase: false });
-            }
+            // Mock: all services online
+            setServices({ backend: true, ollama: true, supabase: true });
         });
 
-        // Support role: also count unapproved users directly from Supabase
+        // Support role: mock pending user count
         if (isSupport) {
-            supabase
-                .from("user_profiles")
-                .select("*", { count: "exact", head: true })
-                .eq("is_approved", false)
-                .then(({ count }) => setPendingUserCount(count ?? 0));
+            setPendingUserCount(2);
         }
     }, [user?.organization_id, isSupport]);
 

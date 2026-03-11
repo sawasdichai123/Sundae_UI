@@ -1,158 +1,168 @@
 /**
- * SUNDAE Frontend — Supabase Client (Singleton)
+ * SUNDAE Frontend — Supabase Client (Mock for Prototype)
  *
- * Environment variables (set in .env):
- *   VITE_SUPABASE_URL       — e.g. https://xxxxx.supabase.co
- *   VITE_SUPABASE_ANON_KEY  — public anon key
- *
- * Token Keep-Alive System:
- *   Since we disabled Web Locks (Bug B17), Supabase's built-in
- *   autoRefreshToken does NOT work reliably. We compensate with:
- *     1. Periodic refresh every 4 minutes
- *     2. Refresh on tab focus (user returns after idle/sleep)
- *     3. Timestamp-based staleness check on visibility change
+ * Replaces real Supabase with no-op mocks so the app works
+ * without any backend connection.
  */
 
-import { createClient } from "@supabase/supabase-js";
+import { MOCK_SESSION, MOCK_ORG, MOCK_PENDING_USERS, MOCK_APPROVED_USERS } from "../mock/mockData";
+import type { UserProfile } from "../types";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// ── In-memory state for Supabase table mocks ────────────────────
+let mockPendingUsers = [...MOCK_PENDING_USERS];
+let mockApprovedUsers = [...MOCK_APPROVED_USERS];
 
-if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn(
-        "[SUNDAE] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY.\n" +
-        "Auth will not work until these are set in your .env file."
-    );
+// ── Mock Auth ───────────────────────────────────────────────────
+
+type AuthCallback = (event: string, session: any) => void;
+
+const mockAuth = {
+    signInWithPassword: async (_creds: { email: string; password: string }) => ({
+        data: { session: MOCK_SESSION, user: MOCK_SESSION.user },
+        error: null,
+    }),
+
+    signUp: async (_opts: any) => ({
+        data: { user: MOCK_SESSION.user, session: null },
+        error: null as any,
+    }),
+
+    getSession: async () => ({
+        data: { session: MOCK_SESSION },
+        error: null,
+    }),
+
+    refreshSession: async () => ({
+        data: { session: MOCK_SESSION },
+        error: null,
+    }),
+
+    signOut: async () => ({ error: null }),
+
+    onAuthStateChange: (callback: AuthCallback) => {
+        // Fire INITIAL_SESSION immediately (simulates Supabase behavior)
+        setTimeout(() => {
+            callback("INITIAL_SESSION", MOCK_SESSION);
+        }, 50);
+        return {
+            data: {
+                subscription: {
+                    unsubscribe: () => { /* no-op */ },
+                },
+            },
+        };
+    },
+};
+
+// ── Mock Query Builder (for .from().select()...) ────────────────
+
+interface MockQueryResult {
+    data: any;
+    error: null;
+    count?: number;
 }
 
-export const supabase = createClient(
-    supabaseUrl || "http://localhost:54321",
-    supabaseAnonKey || "placeholder-key",
-    {
-        auth: {
-            // No-op lock function — prevents "Acquiring an exclusive Navigator Lock… timed out"
-            // deadlock that blocks the entire app (Bug B17).
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            lock: (async (_name: string, _acquireTimeout: number, fn: () => Promise<any>) => {
-                return await fn();
-            }) as any,
-            autoRefreshToken: true,
-            persistSession: true,
-            detectSessionInUrl: true,
+function createQueryBuilder(tableName: string) {
+    let filters: Array<{ column: string; value: any }> = [];
+    let limitCount: number | null = null;
+    let isHead = false;
+    let isCountExact = false;
+    let isSingle = false;
+    let updatePayload: any = null;
+
+    const getTableData = (): UserProfile[] => {
+        if (tableName === "user_profiles") {
+            return [...mockPendingUsers, ...mockApprovedUsers] as UserProfile[];
+        }
+        if (tableName === "organizations") {
+            return [MOCK_ORG] as any[];
+        }
+        return [];
+    };
+
+    const applyFilters = (data: any[]): any[] => {
+        let result = data;
+        for (const f of filters) {
+            result = result.filter((item) => item[f.column] === f.value);
+        }
+        return result;
+    };
+
+    const builder: any = {
+        select: (_cols?: string, opts?: { count?: string; head?: boolean }) => {
+            if (opts?.head) isHead = true;
+            if (opts?.count === "exact") isCountExact = true;
+            return builder;
         },
-    }
-);
+        eq: (column: string, value: any) => {
+            filters.push({ column, value });
+            return builder;
+        },
+        order: (_col: string, _opts?: any) => builder,
+        limit: (n: number) => {
+            limitCount = n;
+            return builder;
+        },
+        single: () => {
+            isSingle = true;
+            return builder;
+        },
+        update: (payload: any) => {
+            updatePayload = payload;
+            return builder;
+        },
+        then: (resolve: (result: MockQueryResult) => void) => {
+            let data = getTableData();
+            data = applyFilters(data);
 
-// ═══════════════════════════════════════════════════════════════════
-// Token Keep-Alive System
-// ═══════════════════════════════════════════════════════════════════
-
-// Track the last successful refresh time
-let lastRefreshTime = Date.now();
-
-let consecutiveRefreshFailures = 0;
-
-let refreshPromise: Promise<void> | null = null;
-
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-    let timeoutId: number | undefined;
-    const timeoutPromise = new Promise<T>((_resolve, reject) => {
-        timeoutId = window.setTimeout(() => {
-            reject(new Error(`${label} timed out after ${ms}ms`));
-        }, ms);
-    });
-
-    return Promise.race([promise, timeoutPromise]).finally(() => {
-        if (timeoutId !== undefined) window.clearTimeout(timeoutId);
-    });
-}
-
-async function refreshOnce(): Promise<void> {
-    if (refreshPromise) return refreshPromise;
-
-    refreshPromise = (async () => {
-        try {
-            const { error } = await withTimeout(
-                supabase.auth.refreshSession(),
-                10_000,
-                "supabase.auth.refreshSession()"
-            );
-            if (error) {
-                console.warn("[Auth] Periodic refresh failed:", error.message);
-                consecutiveRefreshFailures += 1;
-            } else {
-                lastRefreshTime = Date.now();
-                consecutiveRefreshFailures = 0;
+            // Handle update
+            if (updatePayload !== null) {
+                if (tableName === "user_profiles" && updatePayload.is_approved === true) {
+                    const userId = filters.find((f) => f.column === "id")?.value;
+                    if (userId) {
+                        const idx = mockPendingUsers.findIndex((u) => u.id === userId);
+                        if (idx !== -1) {
+                            const user = { ...mockPendingUsers[idx], is_approved: true };
+                            mockPendingUsers.splice(idx, 1);
+                            mockApprovedUsers.unshift(user);
+                            resolve({ data: [{ id: userId, is_approved: true }], error: null });
+                            return;
+                        }
+                    }
+                }
+                resolve({ data: [], error: null });
+                return;
             }
-        } catch (err) {
-            console.warn("[Auth] Periodic refresh timed out or errored:", err);
-            consecutiveRefreshFailures += 1;
-        } finally {
-            setTimeout(() => { refreshPromise = null; }, 1000);
-        }
-    })();
 
-    return refreshPromise;
-}
-
-async function forceReauth(): Promise<void> {
-    try {
-        await supabase.auth.signOut();
-    } catch {
-        // ignore
-    }
-    try {
-        Object.keys(localStorage).forEach((key) => {
-            if (key.startsWith("sb-")) localStorage.removeItem(key);
-        });
-    } catch {
-        // ignore
-    }
-    window.location.href = "/login";
-}
-
-async function refreshIfNeeded() {
-    try {
-        const { data } = await withTimeout(
-            supabase.auth.getSession(),
-            10_000,
-            "supabase.auth.getSession()"
-        );
-        if (!data.session) {
-            consecutiveRefreshFailures += 1;
-            if (consecutiveRefreshFailures >= 2) {
-                await forceReauth();
+            if (isHead && isCountExact) {
+                resolve({ data: null, error: null, count: data.length });
+                return;
             }
-            return;
-        }
 
-        const expiresAt = data.session.expires_at ?? 0;
-        const now = Math.floor(Date.now() / 1000);
-        const remainingSec = expiresAt - now;
-
-        // Refresh if less than 10 minutes remaining
-        if (remainingSec < 600) {
-            await refreshOnce();
-            if (consecutiveRefreshFailures >= 2) {
-                await forceReauth();
+            if (limitCount !== null) {
+                data = data.slice(0, limitCount);
             }
-        }
-    } catch { /* silent */ }
+
+            if (isSingle) {
+                resolve({ data: data[0] || null, error: data[0] ? null : null });
+                return;
+            }
+
+            resolve({ data, error: null });
+        },
+    };
+
+    // Make builder thenable (works with await)
+    builder[Symbol.toStringTag] = "Promise";
+    builder.catch = (fn: any) => Promise.resolve(builder).catch(fn);
+    builder.finally = (fn: any) => Promise.resolve(builder).finally(fn);
+
+    return builder;
 }
 
-// 1. Periodic refresh — every 4 minutes
-setInterval(refreshIfNeeded, 4 * 60 * 1000);
+// ── Exported supabase mock ──────────────────────────────────────
 
-// 2. Refresh on tab focus — handles idle/sleep/tab-switch scenarios
-//    Also checks if we've been away for more than 5 minutes (sleep/hibernate)
-document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") {
-        const timeSinceLastRefresh = Date.now() - lastRefreshTime;
-        const fiveMinutes = 5 * 60 * 1000;
-
-        if (timeSinceLastRefresh > fiveMinutes) {
-            // We've been away for a while — force refresh immediately
-            refreshIfNeeded();
-        }
-    }
-});
+export const supabase = {
+    auth: mockAuth,
+    from: (tableName: string) => createQueryBuilder(tableName),
+};

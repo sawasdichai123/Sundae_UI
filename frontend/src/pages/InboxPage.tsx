@@ -64,8 +64,6 @@ function statusConfig(status: string) {
             return { label: "รับเรื่อง", className: "bg-amber-50 text-amber-600", dot: "bg-amber-500" };
         case "helped":
             return { label: "ช่วยเหลือเรียบร้อย", className: "bg-blue-50 text-blue-600", dot: "bg-blue-500" };
-        case "resolved":
-            return { label: "ปิดแล้ว", className: "bg-steel-100 text-steel-500", dot: "bg-steel-400" };
         default:
             return { label: status, className: "bg-steel-100 text-steel-500", dot: "bg-steel-400" };
     }
@@ -223,10 +221,8 @@ export default function InboxPage() {
             lastPollTimestampRef.current = res.data.created_at;
             setReplyText("");
             if (replyInputRef.current) replyInputRef.current.style.height = "auto";
-            // Update session status locally if it changed
-            if (selectedSession.status === "active") {
-                setSelectedSession({ ...selectedSession, status: "human_takeover" });
-            }
+            setReplyText("");
+            if (replyInputRef.current) replyInputRef.current.style.height = "auto";
         } catch (err) {
             console.error("[Inbox] Failed to send reply:", err);
         } finally {
@@ -243,8 +239,11 @@ export default function InboxPage() {
 
     // ── Filtered sessions ───────────────────────────────────────
     const filtered = sessions.filter((s) =>
-        (s.user_name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.platform_source.toLowerCase().includes(searchQuery.toLowerCase())
+        s.platform_source === "web" &&
+        (
+            (s.user_name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+            s.platform_source.toLowerCase().includes(searchQuery.toLowerCase())
+        )
     );
 
     return (
@@ -346,23 +345,8 @@ export default function InboxPage() {
 
                             {/* Action Buttons */}
                             <div className="flex items-center gap-2">
+
                                 {selectedSession.status === "active" && (
-                                    <button
-                                        onClick={() => handleStatusChange("human_takeover")}
-                                        className="px-3 py-1.5 bg-amber-50 text-amber-700 text-xs font-medium rounded-lg hover:bg-amber-100 transition-colors cursor-pointer"
-                                    >
-                                        🙋 รับเรื่อง
-                                    </button>
-                                )}
-                                {selectedSession.status === "human_takeover" && (
-                                    <button
-                                        onClick={() => handleStatusChange("active")}
-                                        className="px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-medium rounded-lg hover:bg-emerald-100 transition-colors cursor-pointer"
-                                    >
-                                        🤖 คืนร่างให้ AI
-                                    </button>
-                                )}
-                                {selectedSession.status !== "resolved" && selectedSession.status !== "helped" && (
                                     <button
                                         onClick={() => handleStatusChange("helped")}
                                         className="px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"
@@ -376,14 +360,6 @@ export default function InboxPage() {
                                         className="px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-medium rounded-lg hover:bg-emerald-100 transition-colors cursor-pointer"
                                     >
                                         🔄 ยังต้องช่วยเหลือ
-                                    </button>
-                                )}
-                                {selectedSession.status === "resolved" && (
-                                    <button
-                                        onClick={() => handleStatusChange("active")}
-                                        className="px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-medium rounded-lg hover:bg-emerald-100 transition-colors cursor-pointer"
-                                    >
-                                        🔄 เปิดใหม่
                                     </button>
                                 )}
                             </div>
@@ -469,7 +445,7 @@ export default function InboxPage() {
                         </div>
 
                         {/* ── Admin Reply Composer ─────────────────── */}
-                        {selectedSession.status === "human_takeover" && (
+                        {selectedSession.status === "active" && (
                             <div className="px-6 py-3 border-t border-steel-100 bg-white">
                                 <div className="flex items-end gap-3 bg-white rounded-xl border-2 border-blue-300 focus-within:ring-2 focus-within:ring-blue-100 transition-all px-3 py-2">
                                     <textarea

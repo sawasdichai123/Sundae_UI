@@ -1,62 +1,90 @@
 /**
- * SUNDAE Frontend — API Endpoint Definitions
+ * SUNDAE Frontend — API Endpoints (Mock for Prototype)
  *
- * Centralized API calls matching the FastAPI backend endpoints.
- * Updated for Omnichannel support (Web + LINE).
+ * All API functions operate on in-memory mock data.
+ * No real HTTP requests are made.
  */
 
-import apiClient, { getValidToken, refreshTokenOnce } from "./axios";
 import type {
     Bot,
-    ChatAskResponse,
     Document,
-    DocumentUploadResponse,
     PlatformSource,
 } from "../types";
+import {
+    MOCK_BOTS,
+    MOCK_DOCUMENTS,
+    MOCK_SESSIONS,
+    MOCK_MESSAGES,
+    MOCK_SESSION_USER_NAMES,
+    MOCK_AI_RESPONSES,
+    MOCK_ORG,
+} from "../mock/mockData";
+
+// ── Mutable In-Memory State ─────────────────────────────────────
+
+let bots = [...MOCK_BOTS];
+let documents = [...MOCK_DOCUMENTS];
+let sessions = [...MOCK_SESSIONS];
+let messagesDb: Record<string, any[]> = JSON.parse(JSON.stringify(MOCK_MESSAGES));
+
+// ── Helper ──────────────────────────────────────────────────────
+
+const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+function wrap<T>(data: T) {
+    return { data };
+}
 
 // ── Documents ───────────────────────────────────────────────────
 
 export const documentsApi = {
-    /** Upload a PDF document for processing. */
-    upload: (file: File, botId: string | null, organizationId: string) => {
-        const formData = new FormData();
-        formData.append("file", file);
-        if (botId) formData.append("bot_id", botId);
-        formData.append("organization_id", organizationId);
-
-        return apiClient.post<DocumentUploadResponse>(
-            "/api/documents/upload",
-            formData,
-            {
-                headers: { "Content-Type": "multipart/form-data" },
-                timeout: 300_000, // PDF parsing + chunking + embedding อาจใช้เวลา 5 นาที
-            }
-        );
+    upload: async (_file: File, _botId: string | null, _organizationId: string) => {
+        await delay(800);
+        const newDoc: Document = {
+            id: `doc-${Date.now()}`,
+            organization_id: MOCK_ORG.id,
+            bot_id: _botId || null,
+            name: _file.name || `เอกสารใหม่_${Date.now()}.pdf`,
+            file_path: `/uploads/doc-${Date.now()}.pdf`,
+            file_size_bytes: _file.size || 1_500_000,
+            mime_type: "application/pdf",
+            status: "ready",
+            created_at: new Date().toISOString(),
+        };
+        documents.unshift(newDoc);
+        return wrap({
+            document_id: newDoc.id,
+            filename: newDoc.name,
+            total_parent_chunks: 12,
+            total_child_chunks: 48,
+            status: "ready",
+        });
     },
 
-    /** List all documents for an organization. */
-    list: (organizationId: string) =>
-        apiClient.get<Document[]>("/api/documents", {
-            params: { organization_id: organizationId },
-        }),
+    list: async (_organizationId: string) => {
+        await delay(300);
+        return wrap(documents);
+    },
 
-    /** Get document status by ID. */
-    getStatus: (documentId: string, organizationId: string) =>
-        apiClient.get<Document>(`/api/documents/${documentId}`, {
-            params: { organization_id: organizationId },
-        }),
+    getStatus: async (documentId: string, _organizationId: string) => {
+        await delay(100);
+        const doc = documents.find((d) => d.id === documentId);
+        return wrap(doc || documents[0]);
+    },
 
-    /** Delete a document. */
-    delete: (documentId: string, organizationId: string) =>
-        apiClient.delete(`/api/documents/${documentId}`, {
-            params: { organization_id: organizationId },
-        }),
+    delete: async (documentId: string, _organizationId: string) => {
+        await delay(300);
+        documents = documents.filter((d) => d.id !== documentId);
+        return wrap({ success: true });
+    },
 
-    /** Link or unlink a document to/from a bot. */
-    linkBot: (documentId: string, organizationId: string, botId: string | null) =>
-        apiClient.patch(`/api/documents/${documentId}/link-bot`, null, {
-            params: { organization_id: organizationId, bot_id: botId },
-        }),
+    linkBot: async (documentId: string, _organizationId: string, botId: string | null) => {
+        await delay(200);
+        documents = documents.map((d) =>
+            d.id === documentId ? { ...d, bot_id: botId } : d
+        );
+        return wrap({ success: true });
+    },
 };
 
 // ── Chat (Omnichannel) ──────────────────────────────────────────
@@ -70,271 +98,263 @@ export interface ChatAskParams {
     sessionId?: string;
 }
 
-export const chatApi = {
-    /** Send a question to the RAG pipeline (omnichannel). */
-    ask: ({
-        userQuery,
-        organizationId,
-        botId,
-        platformUserId,
-        platformSource = "web",
-        sessionId,
-    }: ChatAskParams) =>
-        apiClient.post<ChatAskResponse>("/api/chat/ask", {
-            user_query: userQuery,
-            organization_id: organizationId,
-            bot_id: botId,
-            platform_user_id: platformUserId,
-            platform_source: platformSource,
-            session_id: sessionId,
-        }, {
-            timeout: 300_000,
-        }),
+function pickMockResponse(query: string): string {
+    const q = query.toLowerCase();
+    if (q.includes("ลา") || q.includes("หยุด") || q.includes("leave")) return MOCK_AI_RESPONSES.leave;
+    if (q.includes("สวัสดิการ") || q.includes("benefit") || q.includes("ประกัน")) return MOCK_AI_RESPONSES.benefit;
+    if (q.includes("เบิก") || q.includes("ค่าใช้จ่าย") || q.includes("expense")) return MOCK_AI_RESPONSES.expense;
+    return MOCK_AI_RESPONSES.default;
+}
 
-    /** Stream a response from the RAG pipeline via SSE.
-     *  Returns an AbortController so the caller can cancel the request. */
+export const chatApi = {
+    ask: async (params: ChatAskParams) => {
+        await delay(1000);
+        const answer = pickMockResponse(params.userQuery);
+        return wrap({
+            answer,
+            sources: [
+                { document_id: "doc-001", chunk_index: 3, score: 0.92 },
+                { document_id: "doc-002", chunk_index: 1, score: 0.85 },
+            ],
+            session_id: params.sessionId || null,
+        });
+    },
+
     askStream: (
         params: ChatAskParams,
         onToken: (token: string) => void,
         onSources: (sources: Array<{ document_id: string; chunk_index: number; score: number }>) => void,
         onDone: () => void,
-        onError: (error: string) => void,
+        _onError: (error: string) => void,
     ): AbortController => {
-        // Create controller upfront so caller can abort before the async work starts
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 90_000);
+        const response = pickMockResponse(params.userQuery);
 
-        // Fire-and-forget the async work (outer try/catch guarantees onError is always called)
+        // Ensure session exists in messagesDb
+        const sid = params.sessionId || "mock-session";
+        if (!messagesDb[sid]) messagesDb[sid] = [];
+
+        // Store user message
+        messagesDb[sid].push({
+            id: crypto.randomUUID(),
+            session_id: sid,
+            organization_id: params.organizationId,
+            role: "user",
+            content: params.userQuery,
+            metadata: {},
+            created_at: new Date().toISOString(),
+        });
+
+        // Ensure session exists in sessions list
+        if (!sessions.find((s) => s.id === sid)) {
+            sessions.unshift({
+                id: sid,
+                organization_id: params.organizationId,
+                bot_id: params.botId,
+                platform_user_id: params.platformUserId,
+                platform_source: params.platformSource || "web",
+                status: "active",
+                started_at: new Date().toISOString(),
+                last_message_at: new Date().toISOString(),
+            });
+        }
+
+        // Simulate streaming — character by character with delay
         (async () => {
-            try {
-                if (controller.signal.aborted) {
-                    onError("ยกเลิกคำขอแล้ว");
-                    return;
-                }
+            // Initial "thinking" delay
+            await delay(800);
 
-                console.log("[askStream] Step 1: getting valid token");
+            const chars = response.split("");
+            let i = 0;
+            const chunkSize = 3; // Send 3 characters at a time for speed
 
-                // Get token — uses shared getValidToken() which auto-refreshes if near expiry
-                const token = await getValidToken();
-                console.log("[askStream] Step 1 done, token:", token ? "YES" : "NO");
-
-                if (!token) {
-                    try {
-                        const { useToastStore } = await import("../store/toastStore");
-                        useToastStore.getState().addToast(
-                            "warning",
-                            "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่",
-                            8000,
-                        );
-                    } catch { /* ignore if toast not available */ }
-                    await new Promise((r) => setTimeout(r, 1500));
-                    window.location.href = "/login";
-                    onError("Not authenticated");
-                    return;
-                }
-
-                if (controller.signal.aborted) {
-                    onError("ยกเลิกคำขอแล้ว");
-                    return;
-                }
-
-                console.log("[askStream] Sending fetch to", import.meta.env.VITE_API_BASE_URL);
-                const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8001";
-
-                const payload = {
-                    user_query: params.userQuery,
-                    organization_id: params.organizationId,
-                    bot_id: params.botId,
-                    platform_user_id: params.platformUserId,
-                    platform_source: params.platformSource || "web",
-                    session_id: params.sessionId,
-                };
-
-                const doFetch = async (accessToken: string) => {
-                    return await fetch(`${baseUrl}/api/chat/ask/stream`, {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "Authorization": `Bearer ${accessToken}`,
-                        },
-                        body: JSON.stringify(payload),
-                        signal: controller.signal,
-                    });
-                };
-
-                let response = await doFetch(token);
-
-                // Retry once on 401 (expired access token) — align behavior with axios interceptor
-                if (response.status === 401) {
-                    const freshToken = await refreshTokenOnce();
-                    if (!freshToken) {
-                        try {
-                            const { useToastStore } = await import("../store/toastStore");
-                            useToastStore.getState().addToast(
-                                "warning",
-                                "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่",
-                                8000,
-                            );
-                        } catch { /* ignore if toast not available */ }
-                        // Small delay so the toast is visible before redirect
-                        await new Promise((r) => setTimeout(r, 1500));
-                        window.location.href = "/login";
-                        onError("Session expired (401)");
-                        return;
-                    }
-                    response = await doFetch(freshToken);
-                }
-
-                if (!response.ok) {
-                    onError(`HTTP ${response.status}`);
-                    return;
-                }
-
-                const reader = response.body?.getReader();
-                if (!reader) {
-                    onError("No response body");
-                    return;
-                }
-
-                const decoder = new TextDecoder();
-                let buffer = "";
-                let doneSignaled = false;
-
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-
-                    clearTimeout(timeoutId);
-
-                    buffer += decoder.decode(value, { stream: true });
-                    const lines = buffer.split("\n");
-                    buffer = lines.pop() || "";
-
-                    for (const line of lines) {
-                        if (!line.startsWith("data: ")) continue;
-                        try {
-                            const data = JSON.parse(line.slice(6));
-                            if (data.type === "token") {
-                                onToken(data.content);
-                            } else if (data.type === "sources") {
-                                onSources(data.sources);
-                            } else if (data.type === "done") {
-                                doneSignaled = true;
-                                onDone();
-                            }
-                        } catch { /* skip malformed */ }
-                    }
-                }
-                if (!doneSignaled) onDone();
-            } catch (err: unknown) {
-                console.error("[askStream] Error:", err);
-                if (err instanceof Error && err.name === "AbortError") {
-                    onError("ยกเลิกคำขอแล้ว");
-                } else {
-                    onError(err instanceof Error ? err.message : "เกิดข้อผิดพลาด");
-                }
-            } finally {
-                clearTimeout(timeoutId);
+            while (i < chars.length) {
+                if (controller.signal.aborted) return;
+                const chunk = chars.slice(i, i + chunkSize).join("");
+                onToken(chunk);
+                i += chunkSize;
+                await delay(20); // 20ms per chunk for realistic typing
             }
+
+            // Send sources after text
+            onSources([
+                { document_id: "doc-001", chunk_index: 3, score: 0.92 },
+                { document_id: "doc-002", chunk_index: 1, score: 0.85 },
+            ]);
+
+            // Store assistant message
+            messagesDb[sid].push({
+                id: crypto.randomUUID(),
+                session_id: sid,
+                organization_id: params.organizationId,
+                role: "assistant",
+                content: response,
+                metadata: {},
+                created_at: new Date().toISOString(),
+            });
+
+            // Update session last_message_at
+            sessions = sessions.map((s) =>
+                s.id === sid ? { ...s, last_message_at: new Date().toISOString() } : s
+            );
+
+            onDone();
         })();
 
         return controller;
     },
 
-    /** User requests a human agent to take over the session. */
-    requestHuman: (sessionId: string, organizationId: string, botId: string) =>
-        apiClient.post("/api/chat/request-human", {
-            session_id: sessionId,
-            organization_id: organizationId,
-            bot_id: botId,
-        }),
+    requestHuman: async (_sessionId: string, _organizationId: string, _botId: string) => {
+        await delay(300);
+        // Update session status
+        sessions = sessions.map((s) =>
+            s.id === _sessionId ? { ...s, status: "active" } : s
+        );
+        return wrap({ success: true });
+    },
 
-    /** Send a plain user message (no RAG) — used during human_takeover. */
-    sendMessage: (sessionId: string, organizationId: string, content: string) =>
-        apiClient.post("/api/chat/send-message", {
-            session_id: sessionId,
-            organization_id: organizationId,
+    sendMessage: async (_sessionId: string, _organizationId: string, content: string) => {
+        await delay(200);
+        const msg = {
+            id: crypto.randomUUID(),
+            session_id: _sessionId,
+            organization_id: _organizationId,
+            role: "user",
             content,
-        }),
+            metadata: {},
+            created_at: new Date().toISOString(),
+        };
+        if (!messagesDb[_sessionId]) messagesDb[_sessionId] = [];
+        messagesDb[_sessionId].push(msg);
+        return wrap(msg);
+    },
 };
 
 // ── Bots ────────────────────────────────────────────────────────
 
 export const botsApi = {
-    /** Create a new bot. */
-    create: (data: {
+    create: async (data: {
         name: string;
         organization_id: string;
         description?: string;
         system_prompt?: string;
         is_web_enabled?: boolean;
-    }) => apiClient.post<Bot>("/api/bots", data),
+    }) => {
+        await delay(400);
+        const newBot: Bot = {
+            id: `bot-${Date.now()}`,
+            organization_id: data.organization_id,
+            name: data.name,
+            description: data.description || null,
+            prompt: data.system_prompt || "",
+            system_prompt: data.system_prompt || null,
+            line_access_token: null,
+            is_active: true,
+            is_web_enabled: data.is_web_enabled ?? true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+        };
+        bots.unshift(newBot);
+        return wrap(newBot);
+    },
 
-    /** List all bots for an organization. */
-    list: (organizationId: string) =>
-        apiClient.get<Bot[]>("/api/bots", {
-            params: { organization_id: organizationId },
-        }),
+    list: async (_organizationId: string) => {
+        await delay(300);
+        return wrap(bots);
+    },
 
-    /** Get a single bot. */
-    get: (botId: string, organizationId: string) =>
-        apiClient.get<Bot>(`/api/bots/${botId}`, {
-            params: { organization_id: organizationId },
-        }),
+    get: async (botId: string, _organizationId: string) => {
+        await delay(100);
+        const bot = bots.find((b) => b.id === botId);
+        return wrap(bot || bots[0]);
+    },
 
-    /** Update bot fields. */
-    update: (botId: string, organizationId: string, data: Partial<Bot>) =>
-        apiClient.put<Bot>(`/api/bots/${botId}`, data, {
-            params: { organization_id: organizationId },
-        }),
+    update: async (botId: string, _organizationId: string, data: Partial<Bot>) => {
+        await delay(300);
+        bots = bots.map((b) =>
+            b.id === botId
+                ? { ...b, ...data, updated_at: new Date().toISOString() }
+                : b
+        );
+        const updated = bots.find((b) => b.id === botId);
+        return wrap(updated || bots[0]);
+    },
 
-    /** Delete a bot. */
-    delete: (botId: string, organizationId: string) =>
-        apiClient.delete(`/api/bots/${botId}`, {
-            params: { organization_id: organizationId },
-        }),
+    delete: async (botId: string, _organizationId: string) => {
+        await delay(300);
+        bots = bots.filter((b) => b.id !== botId);
+        return wrap({ success: true });
+    },
 };
 
 // ── Inbox ───────────────────────────────────────────────────────
 
 export const inboxApi = {
-    /** List chat sessions for an organization. */
-    listSessions: (organizationId: string) =>
-        apiClient.get("/api/inbox/sessions", {
-            params: { organization_id: organizationId },
-        }),
+    listSessions: async (_organizationId: string) => {
+        await delay(200);
+        const enriched = sessions.map((s) => ({
+            ...s,
+            user_name: MOCK_SESSION_USER_NAMES[s.id] || null,
+        }));
+        return wrap(enriched);
+    },
 
-    /** Get messages for a specific session. */
-    getMessages: (sessionId: string, organizationId: string) =>
-        apiClient.get(`/api/inbox/sessions/${sessionId}/messages`, {
-            params: { organization_id: organizationId },
-        }),
+    getMessages: async (sessionId: string, _organizationId: string) => {
+        await delay(200);
+        return wrap(messagesDb[sessionId] || []);
+    },
 
-    /** Update session status. */
-    updateStatus: (sessionId: string, organizationId: string, status: string) =>
-        apiClient.put(
-            `/api/inbox/sessions/${sessionId}/status`,
-            { status },
-            { params: { organization_id: organizationId } }
-        ),
+    updateStatus: async (sessionId: string, _organizationId: string, status: string) => {
+        await delay(200);
+        sessions = sessions.map((s) =>
+            s.id === sessionId ? { ...s, status: status as any } : s
+        );
+        return wrap({ success: true });
+    },
 
-    /** Admin sends a reply message into a session. */
-    sendMessage: (sessionId: string, organizationId: string, content: string) =>
-        apiClient.post(
-            `/api/inbox/sessions/${sessionId}/messages`,
-            { content },
-            { params: { organization_id: organizationId } }
-        ),
+    sendMessage: async (sessionId: string, organizationId: string, content: string) => {
+        await delay(200);
+        const msg = {
+            id: crypto.randomUUID(),
+            session_id: sessionId,
+            organization_id: organizationId,
+            role: "admin",
+            content,
+            metadata: {},
+            created_at: new Date().toISOString(),
+        };
+        if (!messagesDb[sessionId]) messagesDb[sessionId] = [];
+        messagesDb[sessionId].push(msg);
+        // Update session last_message_at
+        sessions = sessions.map((s) =>
+            s.id === sessionId ? { ...s, last_message_at: new Date().toISOString() } : s
+        );
+        return wrap(msg);
+    },
 
-    /** Poll for new messages after a given timestamp. */
-    getNewMessages: (sessionId: string, organizationId: string, after: string) =>
-        apiClient.get(`/api/inbox/sessions/${sessionId}/messages/new`, {
-            params: { organization_id: organizationId, after },
-        }),
+    getNewMessages: async (sessionId: string, _organizationId: string, after: string) => {
+        await delay(100);
+        const allMsgs = messagesDb[sessionId] || [];
+        const afterDate = new Date(after).getTime();
+        const newMsgs = allMsgs.filter(
+            (m: any) => new Date(m.created_at).getTime() > afterDate
+        );
+        const session = sessions.find((s) => s.id === sessionId);
+        return wrap({
+            messages: newMsgs,
+            session_status: session?.status || "active",
+        });
+    },
 
-    /** List current user's own chat sessions (any approved role). */
-    mySessions: (organizationId: string) =>
-        apiClient.get("/api/inbox/my-sessions", {
-            params: { organization_id: organizationId },
-        }),
+    mySessions: async (_organizationId: string) => {
+        await delay(200);
+        const mySessions = sessions.map((s) => ({
+            id: s.id,
+            bot_id: s.bot_id,
+            bot_name: bots.find((b) => b.id === s.bot_id)?.name || null,
+            status: s.status,
+            last_message_at: s.last_message_at,
+        }));
+        return wrap(mySessions);
+    },
 };
