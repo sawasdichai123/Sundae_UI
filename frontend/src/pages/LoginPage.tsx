@@ -7,14 +7,17 @@
  */
 
 import { useState, type FormEvent } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, Link, useSearchParams } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { supabase } from "../api/supabaseClient";
+import Spinner from "../components/Spinner";
 
 type Tab = "login" | "register";
 
 export default function LoginPage() {
     const { signIn, isAuthenticated, isLoading, authError, clearError } = useAuthStore();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const resetSuccess = searchParams.get("reset") === "success";
     const [tab, setTab] = useState<Tab>("login");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -31,6 +34,7 @@ export default function LoginPage() {
         setTab(t);
         clearError();
         setRegisterMsg("");
+        if (resetSuccess) setSearchParams({}, { replace: true });
     };
 
     // ── Sign In ─────────────────────────────────────────────────
@@ -115,6 +119,13 @@ export default function LoginPage() {
                 </button>
             </div>
 
+            {/* Reset Password Success */}
+            {resetSuccess && (
+                <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700">
+                    เปลี่ยนรหัสผ่านสำเร็จ กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่
+                </div>
+            )}
+
             {/* Error / Success Messages */}
             {authError && (
                 <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2">
@@ -154,6 +165,11 @@ export default function LoginPage() {
                             disabled={isLoading}
                             className="w-full px-4 py-2.5 bg-steel-50 border border-steel-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-200 focus:border-brand-400 outline-none transition-all disabled:opacity-50"
                         />
+                        <div className="mt-1.5 text-right">
+                            <Link to="/forgot-password" className="text-xs text-steel-400 hover:text-brand-500 transition-colors">
+                                ลืมรหัสผ่าน?
+                            </Link>
+                        </div>
                     </div>
                     <button
                         type="submit"
@@ -227,11 +243,3 @@ export default function LoginPage() {
     );
 }
 
-function Spinner() {
-    return (
-        <svg className="w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-        </svg>
-    );
-}

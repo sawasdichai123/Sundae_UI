@@ -154,6 +154,7 @@ export default function DashboardPage() {
                 .from("user_profiles")
                 .select("*", { count: "exact", head: true })
                 .eq("is_approved", false)
+                .eq("organization_id", orgId)
                 .then(({ count }) => setPendingUserCount(count ?? 0));
         }
     }, [user?.organization_id, isSupport]);
@@ -260,7 +261,7 @@ export default function DashboardPage() {
                         { name: "Ollama", ok: services?.ollama ?? null },
                         { name: "Embedding", ok: services?.backend ?? null },
                         { name: "Supabase DB", ok: services?.supabase ?? null },
-                        { name: "LINE Webhook", ok: true as boolean | null },
+                        { name: "LINE Webhook", ok: null as boolean | null },
                     ].map((svc) => (
                         <div key={svc.name} className="flex items-center gap-2 text-sm">
                             <span className={`w-2 h-2 rounded-full ${svc.ok === null

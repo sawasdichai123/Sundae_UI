@@ -279,9 +279,13 @@ async def store_parent_chunks(
         for chunk in parent_chunks
     ]
 
+    # Batch insert to avoid payload limits on large documents
+    BATCH_SIZE = 100
     try:
-        query = client.table("document_parent_chunks").insert(rows)
-        await query.execute()
+        for i in range(0, len(rows), BATCH_SIZE):
+            batch = rows[i : i + BATCH_SIZE]
+            query = client.table("document_parent_chunks").insert(batch)
+            await query.execute()
     except Exception as exc:
         logger.error("Failed to store %d parent chunks (org=%s): %s", len(rows), organization_id, exc)
         raise RuntimeError(f"Failed to store parent chunks: {exc}") from exc
@@ -320,9 +324,13 @@ async def store_child_chunks(
         for chunk in child_chunks
     ]
 
+    # Batch insert to avoid payload limits on large documents
+    BATCH_SIZE = 50  # smaller batch for child chunks (includes embedding vectors)
     try:
-        query = client.table("document_child_chunks").insert(rows)
-        await query.execute()
+        for i in range(0, len(rows), BATCH_SIZE):
+            batch = rows[i : i + BATCH_SIZE]
+            query = client.table("document_child_chunks").insert(batch)
+            await query.execute()
     except Exception as exc:
         logger.error("Failed to store %d child chunks (org=%s): %s", len(rows), organization_id, exc)
         raise RuntimeError(f"Failed to store child chunks: {exc}") from exc

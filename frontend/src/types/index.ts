@@ -34,9 +34,7 @@ export interface Bot {
     organization_id: string;
     name: string;
     description: string | null;
-    prompt: string;                     // renamed from system_prompt
-    system_prompt: string | null;       // backend alias
-    line_access_token: string | null;
+    system_prompt: string | null;
     is_active: boolean;
     is_web_enabled: boolean;
     created_at: string;
