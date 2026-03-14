@@ -25,7 +25,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from app.core.auth import CurrentUser, require_approved
+from app.core.auth import CurrentUser, require_approved, verify_organization
 from app.core.database import get_supabase
 
 logger = logging.getLogger(__name__)
@@ -72,7 +72,6 @@ class BotResponse(BaseModel):
     name: str
     description: Optional[str] = None
     system_prompt: Optional[str] = None
-    line_access_token: Optional[str] = None
     is_active: bool = True
     is_web_enabled: bool = True
     created_at: str
@@ -98,6 +97,7 @@ async def create_bot(
 
     If no system_prompt is provided, a sensible Thai-language default is used.
     """
+    verify_organization(user, body.organization_id)
     supabase = get_supabase()
 
     row = {
@@ -126,7 +126,7 @@ async def create_bot(
         raise
     except Exception as exc:
         logger.error("Failed to create bot: %s", exc)
-        raise HTTPException(status_code=500, detail=f"Failed to create bot: {exc}")
+        raise HTTPException(status_code=500, detail="Failed to create bot.")
 
 
 @router.get("", response_model=list[BotResponse])
@@ -135,6 +135,7 @@ async def list_bots(
     user: CurrentUser = Depends(require_approved),
 ) -> list[BotResponse]:
     """List all bots for an organization, ordered by creation date."""
+    verify_organization(user, organization_id)
     supabase = get_supabase()
 
     try:
@@ -149,7 +150,7 @@ async def list_bots(
 
     except Exception as exc:
         logger.error("Failed to list bots (org=%s): %s", organization_id, exc)
-        raise HTTPException(status_code=500, detail=f"Failed to list bots: {exc}")
+        raise HTTPException(status_code=500, detail="Failed to list bots.")
 
 
 @router.get("/{bot_id}", response_model=BotResponse)
@@ -159,6 +160,7 @@ async def get_bot(
     user: CurrentUser = Depends(require_approved),
 ) -> BotResponse:
     """Get a single bot by ID (with org isolation)."""
+    verify_organization(user, organization_id)
     supabase = get_supabase()
 
     try:
@@ -190,6 +192,7 @@ async def update_bot(
     user: CurrentUser = Depends(require_approved),
 ) -> BotResponse:
     """Update bot fields. Only non-null fields are applied."""
+    verify_organization(user, organization_id)
     supabase = get_supabase()
 
     # Build update payload (only provided fields)
@@ -231,7 +234,7 @@ async def update_bot(
         raise
     except Exception as exc:
         logger.error("Failed to update bot %s: %s", bot_id, exc)
-        raise HTTPException(status_code=500, detail=f"Failed to update bot: {exc}")
+        raise HTTPException(status_code=500, detail="Failed to update bot.")
 
 
 @router.delete("/{bot_id}", response_model=BotDeleteResponse)
@@ -245,6 +248,7 @@ async def delete_bot(
     Documents linked to the bot will have bot_id set to NULL
     (ON DELETE SET NULL).
     """
+    verify_organization(user, organization_id)
     supabase = get_supabase()
 
     # Verify existence
@@ -282,4 +286,4 @@ async def delete_bot(
 
     except Exception as exc:
         logger.error("Failed to delete bot %s: %s", bot_id, exc)
-        raise HTTPException(status_code=500, detail=f"Failed to delete bot: {exc}")
+        raise HTTPException(status_code=500, detail="Failed to delete bot.")

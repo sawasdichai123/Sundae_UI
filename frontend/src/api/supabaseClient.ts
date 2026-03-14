@@ -8,7 +8,7 @@
  * Token Keep-Alive System:
  *   Since we disabled Web Locks (Bug B17), Supabase's built-in
  *   autoRefreshToken does NOT work reliably. We compensate with:
- *     1. Periodic refresh every 4 minutes
+ *     1. Periodic refresh every 30 minutes
  *     2. Refresh on tab focus (user returns after idle/sleep)
  *     3. Timestamp-based staleness check on visibility change
  */
@@ -67,7 +67,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
     });
 }
 
-async function refreshOnce(): Promise<void> {
+export async function refreshOnce(): Promise<void> {
     if (refreshPromise) return refreshPromise;
 
     refreshPromise = (async () => {
@@ -112,6 +112,13 @@ async function forceReauth(): Promise<void> {
 }
 
 async function refreshIfNeeded() {
+    // Skip refresh on auth pages where no session is expected
+    // or where refreshing could invalidate a recovery session
+    const authPages = ["/login", "/register", "/forgot-password", "/reset-password"];
+    if (authPages.includes(window.location.pathname)) {
+        return;
+    }
+
     try {
         const { data } = await withTimeout(
             supabase.auth.getSession(),
@@ -130,8 +137,8 @@ async function refreshIfNeeded() {
         const now = Math.floor(Date.now() / 1000);
         const remainingSec = expiresAt - now;
 
-        // Refresh if less than 10 minutes remaining
-        if (remainingSec < 600) {
+        // Refresh if less than 35 minutes remaining
+        if (remainingSec < 2100) {
             await refreshOnce();
             if (consecutiveRefreshFailures >= 2) {
                 await forceReauth();
@@ -140,17 +147,17 @@ async function refreshIfNeeded() {
     } catch { /* silent */ }
 }
 
-// 1. Periodic refresh — every 4 minutes
-setInterval(refreshIfNeeded, 4 * 60 * 1000);
+// 1. Periodic refresh — every 30 minutes
+setInterval(refreshIfNeeded, 30 * 60 * 1000);
 
 // 2. Refresh on tab focus — handles idle/sleep/tab-switch scenarios
 //    Also checks if we've been away for more than 5 minutes (sleep/hibernate)
 document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
         const timeSinceLastRefresh = Date.now() - lastRefreshTime;
-        const fiveMinutes = 5 * 60 * 1000;
+        const thirtyFiveMinutes = 35 * 60 * 1000;
 
-        if (timeSinceLastRefresh > fiveMinutes) {
+        if (timeSinceLastRefresh > thirtyFiveMinutes) {
             // We've been away for a while — force refresh immediately
             refreshIfNeeded();
         }

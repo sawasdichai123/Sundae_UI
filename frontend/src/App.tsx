@@ -6,7 +6,7 @@
  */
 
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { supabase } from "./api/supabaseClient";
 import { useAuthStore } from "./store/authStore";
 
@@ -29,6 +29,8 @@ import InboxPage from "./pages/InboxPage";
 import ApprovalsPage from "./pages/ApprovalsPage";
 import WebChatPage from "./pages/WebChatPage";
 import IntegrationPage from "./pages/IntegrationPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 // ── Auth Lifecycle Provider ─────────────────────────────────────
 
@@ -38,11 +40,11 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     const setLoading = useAuthStore((s) => s.setLoading);
 
     useEffect(() => {
-        // Safety timeout — never block longer than 3 seconds
+        // Safety timeout — never block longer than 5 seconds (accounts for slow networks)
         const timeout = setTimeout(() => {
             console.warn("[Auth] Session check timed out — proceeding without auth");
             setLoading(false);
-        }, 3000);
+        }, 5000);
 
         // Use onAuthStateChange exclusively (Supabase v2 recommended pattern).
         // INITIAL_SESSION fires immediately on registration with the stored session,
@@ -102,6 +104,8 @@ export default function App() {
                         {/* ── Public Routes ──────────────────────────── */}
                         <Route element={<AuthLayout />}>
                             <Route path="/login" element={<LoginPage />} />
+                            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                            <Route path="/reset-password" element={<ResetPasswordPage />} />
                         </Route>
 
                         {/* ── Protected Routes (all roles) ───────────── */}
@@ -126,6 +130,9 @@ export default function App() {
                                 </Route>
                             </Route>
                         </Route>
+
+                        {/* Catch-all: redirect unknown URLs to home */}
+                        <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                 )}
                 <ToastContainer />

@@ -178,3 +178,67 @@ def require_role(*allowed_roles: str) -> Callable:
         return user
 
     return _check_role
+
+
+async def verify_session_access(
+    user: CurrentUser,
+    session_id: str,
+    organization_id: str,
+) -> None:
+    """Verify the user can access a specific chat session.
+
+    Access is granted if:
+      - The user owns the session (platform_user_id == user.id), OR
+      - The user has support/admin role (can view all sessions in their org).
+
+    This prevents regular users from reading/writing other users' sessions.
+
+    Raises:
+        HTTPException 404: Session not found (or not in this org).
+        HTTPException 403: User does not have access to this session.
+    """
+    if user.role in ("support", "admin"):
+        return  # support/admin can access any session in their org
+
+    from app.core.database import get_supabase
+    supabase = get_supabase()
+
+    result = await (
+        supabase.table("chat_sessions")
+        .select("platform_user_id")
+        .eq("id", session_id)
+        .eq("organization_id", organization_id)
+        .limit(1)
+    ).execute()
+
+    if not result.data:
+        # Session doesn't exist yet (new chat) — allow; it will be created
+        return
+
+    session_owner = result.data[0].get("platform_user_id")
+    if session_owner and session_owner != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. You do not own this session.",
+        )
+
+
+def verify_organization(user: CurrentUser, organization_id: str) -> None:
+    """Verify the authenticated user belongs to the given organization.
+
+    This is the primary multi-tenant isolation check. Every endpoint that
+    accepts organization_id MUST call this before proceeding.
+
+    Raises:
+        HTTPException 403: User does not belong to the organization.
+    """
+    if not user.organization_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User is not assigned to any organization.",
+        )
+    if user.organization_id != organization_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. You do not belong to this organization.",
+        )

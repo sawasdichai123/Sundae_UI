@@ -145,13 +145,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             created_at: profile.created_at,
         };
 
-        // DEBUG: remove after testing
-        console.log("[Auth] Profile loaded:", {
-            role: userProfile.role,
-            is_approved: userProfile.is_approved,
-            email: userProfile.email,
-        });
-
         set({ user: userProfile });
 
         // Fetch organization if user has one
@@ -194,7 +187,7 @@ export const selectIsApproved = (state: AuthState): boolean =>
 
 export const selectCanManageContent = (state: AuthState): boolean => {
     const role = state.user?.role;
-    return (role === "user" || role === "admin") && (state.user?.is_approved ?? false);
+    return (role === "user" || role === "support" || role === "admin") && (state.user?.is_approved ?? false);
 };
 
 export const selectIsSupport = (state: AuthState): boolean =>

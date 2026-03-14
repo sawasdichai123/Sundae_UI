@@ -175,7 +175,7 @@ class RerankerService:
     def __init__(
         self,
         model_name: str = "BAAI/bge-reranker-v2-m3",
-        score_threshold: float = 0.3,
+        score_threshold: float = 0.5,
         device: Optional[str] = None,
     ) -> None:
         self.model_name = model_name
@@ -311,18 +311,15 @@ def get_embedding_service(
 ) -> EmbeddingService:
     """Return the singleton EmbeddingService instance.
 
-    On first call, creates and caches the service.  Subsequent calls
-    return the same instance (model_name/device args are ignored after
-    the first call).
-
-    Args:
-        model_name: Override model name (first call only).
-        device:     Override device (first call only).
+    On first call, creates and caches the service using config settings.
+    Subsequent calls return the same instance.
     """
     global _embedding_service
     if _embedding_service is None:
+        from app.core.config import get_settings
+        settings = get_settings()
         _embedding_service = EmbeddingService(
-            model_name=model_name or "BAAI/bge-m3",
+            model_name=model_name or settings.embedding_model,
             device=device,
         )
     return _embedding_service
@@ -335,19 +332,16 @@ def get_reranker_service(
 ) -> RerankerService:
     """Return the singleton RerankerService instance.
 
-    On first call, creates and caches the service.  Subsequent calls
-    return the same instance.
-
-    Args:
-        model_name:      Override model name (first call only).
-        score_threshold:  Override score threshold (first call only).
-        device:           Override device (first call only).
+    On first call, creates and caches the service using config settings.
+    Subsequent calls return the same instance.
     """
     global _reranker_service
     if _reranker_service is None:
+        from app.core.config import get_settings
+        settings = get_settings()
         _reranker_service = RerankerService(
-            model_name=model_name or "BAAI/bge-reranker-v2-m3",
-            score_threshold=score_threshold if score_threshold is not None else 0.3,
+            model_name=model_name or settings.reranker_model,
+            score_threshold=score_threshold if score_threshold is not None else settings.reranker_score_threshold,
             device=device,
         )
     return _reranker_service

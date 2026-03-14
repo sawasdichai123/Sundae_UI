@@ -85,7 +85,7 @@ export default function WebChatPage() {
     // Auth store
     const user = useAuthStore((s) => s.user);
     const orgId = user?.organization_id || import.meta.env.VITE_DEFAULT_ORG_ID || "";
-    const platformUserId = user?.id || `web-${crypto.randomUUID().slice(0, 8)}`;
+    const [platformUserId] = useState(() => user?.id || `web-${crypto.randomUUID().slice(0, 8)}`);
 
     // Bot selector
     const [bots, setBots] = useState<Bot[]>([]);
@@ -129,16 +129,17 @@ export default function WebChatPage() {
         try {
             const res = await botsApi.list(orgId);
             setBots(res.data);
-            // Auto-select first active web-enabled bot if none selected
-            if (!selectedBotId && res.data.length > 0) {
+            // Auto-select first active web-enabled bot if none selected yet
+            setSelectedBotId((prev) => {
+                if (prev) return prev; // already selected — don't overwrite
+                if (res.data.length === 0) return prev;
                 const webBot = res.data.find((b) => b.is_active && b.is_web_enabled);
-                if (webBot) setSelectedBotId(webBot.id);
-                else setSelectedBotId(res.data[0].id);
-            }
+                return webBot ? webBot.id : res.data[0].id;
+            });
         } catch (err) {
             console.error("[Chat] Failed to load bots:", err);
         }
-    }, [orgId, selectedBotId]);
+    }, [orgId]);
 
     useEffect(() => {
         loadBots();
@@ -236,12 +237,21 @@ export default function WebChatPage() {
     }, [botDropdownOpen]);
 
     // ── Fix 1: Poll for admin replies + sync session status ─────────────
+    // Use a ref to read sessionStatus inside the interval without
+    // re-creating the interval every time the status changes.
+    const sessionStatusRef = useRef(sessionStatus);
+    useEffect(() => { sessionStatusRef.current = sessionStatus; }, [sessionStatus]);
+
+    // Poll in any non-terminal status so we catch admin-initiated changes
     useEffect(() => {
-        if (sessionStatus !== "human_takeover" || !orgId || !sessionId) return;
+        if (!orgId || !sessionId) return;
 
         const interval = setInterval(async () => {
+            // No need to poll terminal statuses
+            if (sessionStatusRef.current === "resolved") return;
+            if (document.hidden) return; // skip polling when tab is not visible
             try {
-                const after = lastPollTimestampRef.current || new Date().toISOString();
+                const after = lastPollTimestampRef.current || new Date(0).toISOString();
                 const res = await inboxApi.getNewMessages(sessionId, orgId, after);
                 const pollData = res.data;
 
@@ -267,9 +277,9 @@ export default function WebChatPage() {
                     lastPollTimestampRef.current = lastMsg.created_at;
                 }
 
-                // Sync session status from backend
+                // Sync session status from backend — only react when it actually changes
                 const backendStatus = pollData?.session_status;
-                if (backendStatus && backendStatus !== "human_takeover") {
+                if (backendStatus && backendStatus !== sessionStatusRef.current) {
                     setSessionStatus(backendStatus as SessionStatus);
                     if (backendStatus === "active") {
                         setMessages((prev) => [
@@ -309,7 +319,7 @@ export default function WebChatPage() {
         }, 3000);
 
         return () => clearInterval(interval);
-    }, [sessionStatus, sessionId, orgId]);
+    }, [sessionId, orgId]);
 
     // Request human handoff
     const handleRequestHuman = async () => {
@@ -414,6 +424,8 @@ export default function WebChatPage() {
         const assistantId = crypto.randomUUID();
         let created = false;
         let finished = false;
+        // Buffer sources — they arrive before the first token (before bubble exists)
+        let pendingSources: Array<{ document_id: string; chunk_index: number; score: number }> | null = null;
 
         const markFinished = () => {
             if (finished) return; // Prevent double-call
@@ -445,9 +457,11 @@ export default function WebChatPage() {
                             id: assistantId,
                             role: "assistant",
                             content: token,
+                            sources: pendingSources ?? undefined,
                             timestamp: new Date(),
                         },
                     ]);
+                    pendingSources = null;
                 } else {
                     setMessages((prev) =>
                         prev.map((m) =>
@@ -458,13 +472,17 @@ export default function WebChatPage() {
                     );
                 }
             },
-            // onSources
+            // onSources — buffer if bubble doesn't exist yet
             (sources) => {
-                setMessages((prev) =>
-                    prev.map((m) =>
-                        m.id === assistantId ? { ...m, sources } : m
-                    )
-                );
+                if (!created) {
+                    pendingSources = sources;
+                } else {
+                    setMessages((prev) =>
+                        prev.map((m) =>
+                            m.id === assistantId ? { ...m, sources } : m
+                        )
+                    );
+                }
             },
             // onDone
             () => {
@@ -507,6 +525,13 @@ export default function WebChatPage() {
         abortControllerRef.current?.abort();
         abortControllerRef.current = null;
     };
+
+    // Abort streaming on unmount to prevent memory leaks
+    useEffect(() => {
+        return () => {
+            abortControllerRef.current?.abort();
+        };
+    }, []);
 
     // Helper: format relative time
     const timeAgo = (dateStr: string | null) => {

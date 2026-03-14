@@ -174,7 +174,7 @@ export default function BotsPage() {
         setEditingBot(bot);
         setFormName(bot.name);
         setFormDescription(bot.description || "");
-        setFormPrompt(bot.prompt || bot.system_prompt || "");
+        setFormPrompt(bot.system_prompt || "");
         setFormWebEnabled(bot.is_web_enabled);
         setViewMode("edit");
         // Load documents to show linked ones
@@ -580,7 +580,7 @@ export default function BotsPage() {
                                         )}
                                     </div>
                                     <p className="text-xs text-steel-500 line-clamp-2">
-                                        {bot.prompt || bot.system_prompt || bot.description || "ไม่มีคำอธิบาย"}
+                                        {bot.system_prompt || bot.description || "ไม่มีคำอธิบาย"}
                                     </p>
                                 </div>
 
