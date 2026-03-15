@@ -5,7 +5,7 @@
  * without any backend connection.
  */
 
-import { MOCK_SESSION, MOCK_ORG, MOCK_PENDING_USERS, MOCK_APPROVED_USERS } from "../mock/mockData";
+import { MOCK_SESSION, MOCK_ORG, MOCK_PENDING_USERS, MOCK_APPROVED_USERS } from "../mocks/mockData";
 import type { UserProfile } from "../types";
 
 // ── In-memory state for Supabase table mocks ────────────────────
@@ -133,12 +133,10 @@ function createQueryBuilder(tableName: string) {
                 resolve({ data: [], error: null });
                 return;
             }
-
             if (isHead && isCountExact) {
                 resolve({ data: null, error: null, count: data.length });
                 return;
             }
-
             if (limitCount !== null) {
                 data = data.slice(0, limitCount);
             }

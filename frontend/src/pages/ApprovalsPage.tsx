@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { MOCK_PENDING_USERS, MOCK_APPROVED_USERS } from "../mock/mockData";
+import { MOCK_PENDING_USERS, MOCK_APPROVED_USERS } from "../mocks/mockData";
 import type { UserProfile } from "../types";
 
 export default function ApprovalsPage() {

@@ -142,6 +142,9 @@ export default function DashboardLayout() {
         if (role === "user" && !isUnapproved && location.pathname === "/") {
             navigate("/chat", { replace: true });
         }
+        if (role === "support" && location.pathname === "/") {
+            navigate("/approvals", { replace: true });
+        }
     }, [role, isUnapproved, location.pathname, navigate]);
 
     // Unapproved users see NO navigation links at all

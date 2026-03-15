@@ -5,10 +5,9 @@
  * On mount, restores the session from localStorage if present.
  */
 
-import { useEffect } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { supabase } from "./api/supabaseClient";
-import { useAuthStore } from "./store/authStore";
+import { useEffect, type ReactNode } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { initPrototypeAuthFromStorage, useAuthStore } from "./store/authStore";
 
 // Layouts
 import DashboardLayout from "./layouts/DashboardLayout";
@@ -29,43 +28,27 @@ import InboxPage from "./pages/InboxPage";
 import ApprovalsPage from "./pages/ApprovalsPage";
 import WebChatPage from "./pages/WebChatPage";
 import IntegrationPage from "./pages/IntegrationPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 // ── Auth Lifecycle Provider ─────────────────────────────────────
 
-function AuthProvider({ children }: { children: React.ReactNode }) {
-    const setSession = useAuthStore((s) => s.setSession);
-    const fetchProfile = useAuthStore((s) => s.fetchProfile);
+function AuthProvider({ children }: { children: ReactNode }) {
     const setLoading = useAuthStore((s) => s.setLoading);
 
     useEffect(() => {
-        // Safety timeout — never block longer than 3 seconds
+        // Safety timeout — never block longer than 5 seconds (accounts for slow networks)
         const timeout = setTimeout(() => {
             console.warn("[Auth] Session check timed out — proceeding without auth");
             setLoading(false);
-        }, 3000);
+        }, 5000);
 
-        // Use onAuthStateChange exclusively (Supabase v2 recommended pattern).
-        // INITIAL_SESSION fires immediately on registration with the stored session,
-        // avoiding the race condition between getSession() and onAuthStateChange.
-        let initialized = false;
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (_event, session) => {
-                setSession(session);
-                if (session?.user) {
-                    await fetchProfile(session.user.id);
-                }
-                // Finalize loading only once (after initial session is known)
-                if (!initialized) {
-                    initialized = true;
-                    clearTimeout(timeout);
-                    setLoading(false);
-                }
-            }
-        );
+        initPrototypeAuthFromStorage();
+        clearTimeout(timeout);
+        setLoading(false);
 
         return () => {
             clearTimeout(timeout);
-            subscription.unsubscribe();
         };
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -85,6 +68,20 @@ function LoadingScreen() {
     );
 }
 
+function RoleHome() {
+    const role = useAuthStore((s) => s.user?.role);
+
+    if (role === "admin") {
+        return <DashboardPage />;
+    }
+
+    if (role === "support") {
+        return <Navigate to="/approvals" replace />;
+    }
+
+    return <Navigate to="/chat" replace />;
+}
+
 // ── App ─────────────────────────────────────────────────────────
 
 export default function App() {
@@ -102,12 +99,14 @@ export default function App() {
                         {/* ── Public Routes ──────────────────────────── */}
                         <Route element={<AuthLayout />}>
                             <Route path="/login" element={<LoginPage />} />
+                            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                            <Route path="/reset-password" element={<ResetPasswordPage />} />
                         </Route>
 
                         {/* ── Protected Routes (all roles) ───────────── */}
                         <Route element={<ProtectedRoute />}>
                             <Route element={<DashboardLayout />}>
-                                <Route path="/" element={<DashboardPage />} />
+                                <Route path="/" element={<RoleHome />} />
 
                                 {/* Web Chat — all roles */}
                                 <Route path="/chat" element={<WebChatPage />} />
@@ -126,6 +125,9 @@ export default function App() {
                                 </Route>
                             </Route>
                         </Route>
+
+                        {/* Catch-all: redirect unknown URLs to home */}
+                        <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                 )}
                 <ToastContainer />

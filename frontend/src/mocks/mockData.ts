@@ -132,7 +132,7 @@ export const MOCK_DOCUMENTS: Document[] = [
         file_size_bytes: 890_000,
         mime_type: "application/pdf",
         status: "processing",
-        created_at: new Date(Date.now() - 600_000).toISOString(), // 10 min ago
+        created_at: new Date(Date.now() - 600_000).toISOString(),
     },
 ];
 

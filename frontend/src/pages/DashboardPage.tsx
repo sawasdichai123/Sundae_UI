@@ -249,7 +249,7 @@ export default function DashboardPage() {
                         { name: "Ollama", ok: services?.ollama ?? null },
                         { name: "Embedding", ok: services?.backend ?? null },
                         { name: "Supabase DB", ok: services?.supabase ?? null },
-                        { name: "LINE Webhook", ok: true as boolean | null },
+                        { name: "LINE Webhook", ok: null as boolean | null },
                     ].map((svc) => (
                         <div key={svc.name} className="flex items-center gap-2 text-sm">
                             <span className={`w-2 h-2 rounded-full ${svc.ok === null
