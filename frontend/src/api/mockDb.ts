@@ -1,11 +1,15 @@
-import type { Bot, ChatMessage, ChatSession, Document, Organization, UserProfile } from "../types";
+import type { Bot, ChatMessage, ChatSession, Document, OrgInvitation, OrgMember, OrgMembership, Organization, PendingUser, UserProfile } from "../types";
 import {
     MOCK_AI_RESPONSES,
     MOCK_APPROVED_USERS,
     MOCK_BOTS,
     MOCK_DOCUMENTS,
     MOCK_MESSAGES,
+    MOCK_MY_INVITATIONS,
     MOCK_ORG,
+    MOCK_ORG_INVITATIONS,
+    MOCK_ORG_MEMBERS,
+    MOCK_ORG_MEMBERSHIPS,
     MOCK_PENDING_USERS,
     MOCK_SESSIONS,
     MOCK_SESSION_USER_NAMES,
@@ -13,53 +17,59 @@ import {
 
 type MockDbSnapshot = {
     org: Organization;
-    bots: Bot[];
-    documents: Document[];
-    sessions: Array<ChatSession & { user_name?: string | null }>; // enriched
-    messages: Record<string, ChatMessage[]>;
+    orgs: OrgMembership[];
+    orgMembers: Record<string, OrgMember[]>;
+    orgInvitations: OrgInvitation[];
+    myInvitations: Array<{
+        id: string;
+        organization_id: string;
+        org_name: string;
+        invited_email: string;
+        status: "pending" | "accepted" | "revoked";
+        created_at: string;
+    }>;
+
     pendingUsers: UserProfile[];
     approvedUsers: UserProfile[];
+
+    bots: Bot[];
+    documents: Document[];
+
+    sessions: Array<ChatSession & { user_name?: string | null }>;
+    messages: Record<string, ChatMessage[]>;
 };
 
-const STORAGE_KEY = "sundae_mockdb_v1";
-
-function deepClone<T>(v: T): T {
-    return JSON.parse(JSON.stringify(v)) as T;
-}
 
 function buildSeed(): MockDbSnapshot {
     return {
-        org: deepClone(MOCK_ORG),
-        bots: deepClone(MOCK_BOTS),
-        documents: deepClone(MOCK_DOCUMENTS),
-        sessions: deepClone(MOCK_SESSIONS).map((s) => ({
-            ...s,
-            user_name: MOCK_SESSION_USER_NAMES[s.id] ?? null,
-        })),
-        messages: deepClone(MOCK_MESSAGES),
-        pendingUsers: deepClone(MOCK_PENDING_USERS),
-        approvedUsers: deepClone(MOCK_APPROVED_USERS),
+        org: MOCK_ORG,
+        orgs: MOCK_ORG_MEMBERSHIPS,
+        orgMembers: MOCK_ORG_MEMBERS,
+        orgInvitations: MOCK_ORG_INVITATIONS,
+        myInvitations: MOCK_MY_INVITATIONS,
+
+        pendingUsers: MOCK_PENDING_USERS,
+        approvedUsers: MOCK_APPROVED_USERS,
+
+        bots: MOCK_BOTS,
+        documents: MOCK_DOCUMENTS,
+
+        sessions: MOCK_SESSIONS.map((s) => ({ ...s, user_name: MOCK_SESSION_USER_NAMES[s.id] ?? null })),
+        messages: MOCK_MESSAGES,
     };
 }
 
+let memoryDb: MockDbSnapshot | null = null;
+
 function load(): MockDbSnapshot {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return buildSeed();
-        const parsed = JSON.parse(raw) as MockDbSnapshot;
-        if (!parsed || !parsed.org || !Array.isArray(parsed.bots)) return buildSeed();
-        return parsed;
-    } catch {
-        return buildSeed();
+    if (!memoryDb) {
+        memoryDb = buildSeed();
     }
+    return memoryDb;
 }
 
 function save(snap: MockDbSnapshot) {
-    try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(snap));
-    } catch {
-        // ignore
-    }
+    memoryDb = snap;
 }
 
 function update(mutator: (snap: MockDbSnapshot) => void): MockDbSnapshot {
@@ -81,6 +91,63 @@ export const mockDb = {
     },
 
     getOrg: () => load().org,
+    getPrimaryOrg: () => load().org,
+
+    findUserByEmail: (email: string) => {
+        const e = email.trim().toLowerCase();
+        const snap = load();
+        return (
+            snap.approvedUsers.find((u) => u.email.toLowerCase() === e) ??
+            snap.pendingUsers.find((u) => u.email.toLowerCase() === e) ??
+            null
+        );
+    },
+
+    getUserById: (userId: string) => {
+        const snap = load();
+        return (
+            snap.approvedUsers.find((u) => u.id === userId) ??
+            snap.pendingUsers.find((u) => u.id === userId) ??
+            null
+        );
+    },
+
+    // ── Users / Approvals ───────────────────────────────────────
+    listPendingUsers: () => load().pendingUsers,
+    listApprovedUsers: () => load().approvedUsers,
+
+    approveUser: (userId: string) => {
+        let moved: UserProfile | null = null;
+        update((s) => {
+            const idx = s.pendingUsers.findIndex((u) => u.id === userId);
+            if (idx === -1) return;
+            moved = { ...s.pendingUsers[idx], is_approved: true };
+            s.pendingUsers.splice(idx, 1);
+            s.approvedUsers.unshift(moved);
+        });
+        return moved;
+    },
+
+    rejectUser: (userId: string) => {
+        let removed: UserProfile | null = null;
+        update((s) => {
+            const idx = s.pendingUsers.findIndex((u) => u.id === userId);
+            if (idx === -1) return;
+            removed = s.pendingUsers[idx];
+            s.pendingUsers.splice(idx, 1);
+        });
+        return removed;
+    },
+
+    listPendingForAdminApi: (): PendingUser[] =>
+        load().pendingUsers.map((u) => ({
+            id: u.id,
+            email: u.email,
+            full_name: u.full_name,
+            role: u.role,
+            is_approved: u.is_approved,
+            created_at: u.created_at,
+        })),
 
     // ── Bots ────────────────────────────────────────────────────
     listBots: (_organizationId: string) => load().bots,
@@ -128,7 +195,6 @@ export const mockDb = {
     deleteBot: (botId: string) => {
         update((s) => {
             s.bots = s.bots.filter((b) => b.id !== botId);
-            // Unlink documents
             s.documents = s.documents.map((d) => (d.bot_id === botId ? { ...d, bot_id: null } : d));
         });
         return { success: true } as const;
@@ -198,11 +264,7 @@ export const mockDb = {
         update((s) => {
             if (!s.messages[sessionId]) s.messages[sessionId] = [];
             s.messages[sessionId].push(msg);
-
-            // Update session timestamps
-            s.sessions = s.sessions.map((sess) =>
-                sess.id === sessionId ? { ...sess, last_message_at: msg.created_at } : sess
-            );
+            s.sessions = s.sessions.map((sess) => (sess.id === sessionId ? { ...sess, last_message_at: msg.created_at } : sess));
         });
         return msg;
     },
@@ -219,11 +281,60 @@ export const mockDb = {
         return { success: true } as const;
     },
 
+    ensureWebSession: () => {
+        const snap = load();
+        const existing = snap.sessions.find((s) => s.platform_source === "web");
+        if (existing) return existing;
+
+        const session: ChatSession = {
+            id: `sess-${Date.now()}`,
+            organization_id: snap.org.id,
+            bot_id: snap.bots[0]?.id ?? null,
+            platform_user_id: "web-user",
+            platform_source: "web",
+            status: "active",
+            started_at: nowIso(),
+            last_message_at: nowIso(),
+        };
+        mockDb.ensureSession(session);
+        return session;
+    },
+
     updateSessionStatus: (sessionId: string, status: ChatSession["status"]) => {
         update((s) => {
             s.sessions = s.sessions.map((sess) => (sess.id === sessionId ? { ...sess, status } : sess));
         });
         return { success: true } as const;
+    },
+
+    requestHumanTakeover: (sessionId: string) => {
+        return mockDb.updateSessionStatus(sessionId, "human_takeover");
+    },
+
+    appendUserMessage: (sessionId: string, organizationId: string, content: string) => {
+        const msg: ChatMessage = {
+            id: `msg-${Date.now()}`,
+            session_id: sessionId,
+            organization_id: organizationId,
+            role: "user",
+            content,
+            metadata: {},
+            created_at: nowIso(),
+        };
+        return mockDb.appendMessage(sessionId, msg);
+    },
+
+    appendAgentMessage: (sessionId: string, organizationId: string, content: string) => {
+        const msg: ChatMessage = {
+            id: `msg-${Date.now()}`,
+            session_id: sessionId,
+            organization_id: organizationId,
+            role: "admin",
+            content,
+            metadata: {},
+            created_at: nowIso(),
+        };
+        return mockDb.appendMessage(sessionId, msg);
     },
 
     getNewMessages: (sessionId: string, afterIso: string) => {
@@ -237,29 +348,159 @@ export const mockDb = {
         };
     },
 
-    // ── Support approvals mock ──────────────────────────────────
-    listPendingUsers: () => load().pendingUsers,
+    // ── Organizations (multi-tenant UI) ─────────────────────────
+    listOrgs: () => {
+        const base = load().orgs;
+        try {
+            const rawUser = localStorage.getItem("sundae_proto_user");
+            const user = rawUser ? (JSON.parse(rawUser) as { id?: string; role?: string; email?: string; organization_id?: string | null }) : null;
+            if (!user) return base;
 
-    listApprovedUsers: () => load().approvedUsers,
+            // Approved user with no organization → return empty (triggers create-org page)
+            if (user.organization_id === null) {
+                return [];
+            }
 
-    approveUser: (userId: string) => {
-        let moved: UserProfile | null = null;
-        update((s) => {
-            const idx = s.pendingUsers.findIndex((u) => u.id === userId);
-            if (idx === -1) return;
-            moved = { ...s.pendingUsers[idx], is_approved: true };
-            s.pendingUsers.splice(idx, 1);
-            s.approvedUsers.unshift(moved);
-        });
-        return moved;
+            const platformRole = user.role;
+
+            // Admins can manage the org as owner.
+            if (platformRole === "admin") {
+                return base.map((o) => ({ ...o, org_role: "owner" as const }));
+            }
+
+            // Check if user is an org owner via org_members
+            const snap = load();
+            const members = snap.orgMembers["org-001"] || [];
+            const memberEntry = members.find((m) => m.user_id === user.id);
+            if (memberEntry) {
+                return base.map((o) => ({ ...o, org_role: memberEntry.org_role }));
+            }
+
+            // Default: treat as member
+            return base.map((o) => ({ ...o, org_role: "member" as const }));
+        } catch {
+            return base;
+        }
     },
 
-    // ── AI response helper ──────────────────────────────────────
+    createOrg: (name: string) => {
+        const orgId = `org-${Date.now()}`;
+        const slug = name.trim().toLowerCase().replace(/\s+/g, "-");
+        const created_at = nowIso();
+        const membership: OrgMembership = {
+            id: orgId,
+            name,
+            slug,
+            org_role: "owner",
+            created_at,
+        };
+        update((s) => {
+            s.orgs.unshift(membership);
+            s.orgMembers[orgId] = [];
+            s.org = { id: orgId, name, created_at };
+        });
+        return membership;
+    },
+
+    getOrgDetails: (orgId: string) => {
+        const org = load().orgs.find((o) => o.id === orgId);
+        return org ? { id: org.id, name: org.name, slug: org.slug ?? null, status: "active", created_at: org.created_at } : null;
+    },
+
+    updateOrg: (orgId: string, name: string) => {
+        update((s) => {
+            s.orgs = s.orgs.map((o) => (o.id === orgId ? { ...o, name } : o));
+        });
+        return { success: true } as const;
+    },
+
+    listMembers: (orgId: string) => load().orgMembers[orgId] || [],
+
+    inviteMember: (orgId: string, email: string) => {
+        const inv: OrgInvitation = {
+            id: `inv-${Date.now()}`,
+            organization_id: orgId,
+            invited_email: email,
+            invited_by: "user-admin-001",
+            status: "pending",
+            created_at: nowIso(),
+        };
+        update((s) => {
+            s.orgInvitations.unshift(inv);
+        });
+        return inv;
+    },
+
+    invite: (orgId: string, email: string) => mockDb.inviteMember(orgId, email),
+
+    removeMember: (orgId: string, userId: string) => {
+        update((s) => {
+            s.orgMembers[orgId] = (s.orgMembers[orgId] || []).filter((m) => m.user_id !== userId);
+        });
+        return { success: true } as const;
+    },
+
+    myInvitations: () => {
+        try {
+            const rawUser = localStorage.getItem("sundae_proto_user");
+            const user = rawUser ? (JSON.parse(rawUser) as { email?: string }) : null;
+            if (!user?.email) return load().myInvitations;
+            return load().myInvitations.filter((i) => i.invited_email.toLowerCase() === user.email!.toLowerCase());
+        } catch {
+            return load().myInvitations;
+        }
+    },
+
+    acceptInvitation: (invitationId: string) => {
+        update((s) => {
+            const inv = s.myInvitations.find((i) => i.id === invitationId);
+            if (!inv) return;
+
+            // Mark invitation as accepted
+            s.myInvitations = s.myInvitations.map((i) => (i.id === invitationId ? { ...i, status: "accepted" } : i));
+
+            // Add user to org members
+            try {
+                const rawUser = localStorage.getItem("sundae_proto_user");
+                const user = rawUser ? JSON.parse(rawUser) as { id?: string; email?: string; full_name?: string | null } : null;
+                if (user?.id) {
+                    const orgId = inv.organization_id;
+                    if (!s.orgMembers[orgId]) s.orgMembers[orgId] = [];
+                    if (!s.orgMembers[orgId].find((m) => m.user_id === user.id)) {
+                        s.orgMembers[orgId].push({
+                            user_id: user.id,
+                            email: user.email || "",
+                            full_name: user.full_name || null,
+                            org_role: "member",
+                            joined_at: nowIso(),
+                        });
+                    }
+
+                    // Update user's organization_id in approved users
+                    s.approvedUsers = s.approvedUsers.map((u) =>
+                        u.id === user.id ? { ...u, organization_id: orgId } : u
+                    );
+
+                    // Update localStorage so listOrgs() picks up the change
+                    const updatedUser = s.approvedUsers.find((u) => u.id === user.id);
+                    if (updatedUser) {
+                        localStorage.setItem("sundae_proto_user", JSON.stringify(updatedUser));
+                    }
+                }
+            } catch {
+                // ignore
+            }
+        });
+        return { success: true } as const;
+    },
+
+    // ── AI helper ───────────────────────────────────────────────
     pickMockAnswer: (query: string) => {
         const q = query.toLowerCase();
         if (q.includes("ลา") || q.includes("หยุด") || q.includes("leave")) return MOCK_AI_RESPONSES.leave;
-        if (q.includes("สวัสดิการ") || q.includes("benefit") || q.includes("ประกัน")) return MOCK_AI_RESPONSES.benefit;
-        if (q.includes("เบิก") || q.includes("ค่าใช้จ่าย") || q.includes("expense")) return MOCK_AI_RESPONSES.expense;
+        if (q.includes("สวัสดิการ") || q.includes("benefit") || q.includes("ประกัน") || q.includes("กองทุน")) return MOCK_AI_RESPONSES.benefit;
+        if (q.includes("เบิก") || q.includes("ค่าใช้จ่าย") || q.includes("expense") || q.includes("ใบเสร็จ")) return MOCK_AI_RESPONSES.expense;
+        if (q.includes("vpn") || q.includes("อีเมล") || q.includes("email") || q.includes("ระบบ") || q.includes("เข้าไม่ได้")) return MOCK_AI_RESPONSES.vpn;
         return MOCK_AI_RESPONSES.default;
     },
 };

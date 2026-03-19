@@ -1,15 +1,20 @@
 /**
- * DashboardPage — Role-aware with mock data for Prototype
+ * DashboardPage — Role-aware with real-time data from API / Supabase
  *
- * - Approved users/admins: see full metrics (mock)
+ * - Approved users/admins: see full metrics (live)
  * - Unapproved users:      see "Pending Approval" lockout
  * - Support:               see pending user count instead of chat-today
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore, selectIsSupport } from "../store/authStore";
-import { documentsApi, botsApi, inboxApi } from "../api/endpoints";
+import { useOrgStore, selectIsOrgOwner } from "../store/orgStore";
+import { useToastStore } from "../store/toastStore";
+import { documentsApi, botsApi, inboxApi, orgApi } from "../api/endpoints";
+import { mockDb } from "../api/mockDb";
+import type { OrgMember } from "../types";
+import Spinner from "../components/Spinner";
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -90,11 +95,140 @@ function MetricCard({ icon, label, value, change, changeType, accentColor, disab
     );
 }
 
+// ── Member Management Section ──────────────────────────────────
+
+function MemberManagement({ orgId }: { orgId: string }) {
+    const toast = useToastStore((s) => s.addToast);
+    const [members, setMembers] = useState<OrgMember[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [inviteEmail, setInviteEmail] = useState("");
+    const [inviting, setInviting] = useState(false);
+    const [removingId, setRemovingId] = useState<string | null>(null);
+
+    const loadMembers = useCallback(async () => {
+        try {
+            const { data } = await orgApi.listMembers(orgId);
+            setMembers(data || []);
+        } catch (err) {
+            console.error("[Dashboard] Failed to load members:", err);
+        } finally {
+            setLoading(false);
+        }
+    }, [orgId]);
+
+    useEffect(() => { loadMembers(); }, [loadMembers]);
+
+    const handleInvite = async (e: FormEvent) => {
+        e.preventDefault();
+        if (!inviteEmail.trim()) return;
+        setInviting(true);
+        try {
+            await orgApi.invite(orgId, inviteEmail.trim());
+            toast("success", `ส่งคำเชิญไปที่ ${inviteEmail.trim()} แล้ว`);
+            setInviteEmail("");
+            await loadMembers();
+        } catch (err: unknown) {
+            const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "ส่งคำเชิญไม่สำเร็จ";
+            toast("error", msg);
+        } finally {
+            setInviting(false);
+        }
+    };
+
+    const handleRemove = async (userId: string, name: string) => {
+        if (!confirm(`ลบ ${name} ออกจากองค์กร?`)) return;
+        setRemovingId(userId);
+        try {
+            await orgApi.removeMember(orgId, userId);
+            toast("success", "ลบสมาชิกสำเร็จ");
+            await loadMembers();
+        } catch (err: unknown) {
+            const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "ลบสมาชิกไม่สำเร็จ";
+            toast("error", msg);
+        } finally {
+            setRemovingId(null);
+        }
+    };
+
+    return (
+        <div className="bg-white rounded-2xl border border-steel-100 p-6 mt-6">
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="text-base font-semibold text-steel-800">
+                    สมาชิกในองค์กร ({loading ? "..." : members.length})
+                </h2>
+            </div>
+
+            {/* Member List */}
+            {loading ? (
+                <div className="flex items-center gap-2 text-steel-400 py-4">
+                    <Spinner /> <span className="text-sm">กำลังโหลด...</span>
+                </div>
+            ) : (
+                <div className="divide-y divide-steel-100 mb-5">
+                    {members.map((m) => (
+                        <div key={m.user_id} className="flex items-center gap-3 py-3">
+                            <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-bold text-xs shrink-0">
+                                {(m.full_name || m.email)?.[0]?.toUpperCase() || "?"}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-steel-800 truncate">
+                                    {m.full_name || "ไม่ระบุชื่อ"}
+                                </p>
+                                <p className="text-xs text-steel-400 truncate">{m.email}</p>
+                            </div>
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                                m.org_role === "owner"
+                                    ? "bg-brand-100 text-brand-700"
+                                    : "bg-steel-100 text-steel-500"
+                            }`}>
+                                {m.org_role}
+                            </span>
+                            {m.org_role !== "owner" && (
+                                <button
+                                    onClick={() => handleRemove(m.user_id, m.full_name || m.email)}
+                                    disabled={removingId === m.user_id}
+                                    className="text-xs text-red-500 hover:text-red-700 transition-colors cursor-pointer disabled:opacity-50"
+                                >
+                                    {removingId === m.user_id ? "..." : "ลบ"}
+                                </button>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Invite Form */}
+            <div className="border-t border-steel-100 pt-4">
+                <p className="text-xs font-medium text-steel-600 mb-2">เชิญสมาชิก</p>
+                <form onSubmit={handleInvite} className="flex gap-2">
+                    <input
+                        type="email"
+                        value={inviteEmail}
+                        onChange={(e) => setInviteEmail(e.target.value)}
+                        placeholder="email@example.com"
+                        required
+                        disabled={inviting}
+                        className="flex-1 px-3 py-2 bg-steel-50 border border-steel-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-200 focus:border-brand-400 outline-none transition-all disabled:opacity-50"
+                    />
+                    <button
+                        type="submit"
+                        disabled={inviting || !inviteEmail.trim()}
+                        className="px-4 py-2 bg-brand-400 text-steel-900 text-xs font-bold rounded-xl hover:bg-brand-500 transition-colors cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                    >
+                        {inviting ? <><Spinner /> ส่ง...</> : "ส่งคำเชิญ"}
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+}
+
 // ── Page ────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
     const user = useAuthStore((s) => s.user);
     const isSupport = useAuthStore(selectIsSupport);
+    const isOrgOwner = useOrgStore(selectIsOrgOwner);
     const navigate = useNavigate();
 
     const [docCount, setDocCount] = useState<number | null>(null);
@@ -105,10 +239,10 @@ export default function DashboardPage() {
     const [services, setServices] = useState<HealthServices | null>(null);
 
     useEffect(() => {
-        const orgId = (user?.organization_id ?? import.meta.env.VITE_DEFAULT_ORG_ID) as string;
-        if (!orgId) return;
+        const activeOrgId = useOrgStore.getState().activeOrgId;
+        const orgId = (activeOrgId ?? user?.organization_id ?? import.meta.env.VITE_DEFAULT_ORG_ID) as string;
 
-        // Fetch documents, bots, sessions from mock API
+        // Fetch documents, bots, sessions
         Promise.allSettled([
             documentsApi.list(orgId),
             botsApi.list(orgId),
@@ -133,17 +267,16 @@ export default function DashboardPage() {
                     }).length
                 );
                 setTakeoverCount(
-                    allSessions.filter((s: any) => s.status === "active").length
+                    allSessions.filter((s: any) => s.status === "human_takeover").length
                 );
             }
-
-            // Mock: all services online
-            setServices({ backend: true, ollama: true, supabase: true });
+            setServices({ backend: true, ollama: false, supabase: false });
         });
 
-        // Support role: mock pending user count
+        // Support role: also count unapproved users directly from Supabase
         if (isSupport) {
-            setPendingUserCount(2);
+            const count = mockDb.listPendingUsers().filter((u) => u.organization_id === orgId).length;
+            setPendingUserCount(count);
         }
     }, [user?.organization_id, isSupport]);
 
@@ -156,10 +289,17 @@ export default function DashboardPage() {
         return <PendingApprovalState />;
     }
 
+    const activeOrg = useOrgStore((s) => {
+        const id = s.activeOrgId;
+        return s.orgs.find((o) => o.id === id);
+    });
+
     return (
         <div className="animate-fade-in">
             <div className="mb-8">
-                <h1 className="text-2xl font-bold text-steel-900 tracking-tight">Dashboard</h1>
+                <h1 className="text-2xl font-bold text-steel-900 tracking-tight">
+                    {activeOrg ? activeOrg.name : "Dashboard"}
+                </h1>
                 <p className="text-sm text-steel-500 mt-1">
                     {isSupport ? "ภาพรวมระบบ — โหมดเจ้าหน้าที่ Support" : "ภาพรวมระบบ SUNDAE — ข้อมูลอัปเดตล่าสุด"}
                 </p>
@@ -264,6 +404,11 @@ export default function DashboardPage() {
                     ))}
                 </div>
             </div>
+
+            {/* Member Management — owner and support/admin only */}
+            {(isOrgOwner || isSupport) && activeOrg && (
+                <MemberManagement orgId={activeOrg.id} />
+            )}
         </div>
     );
 }

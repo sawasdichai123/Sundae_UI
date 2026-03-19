@@ -1,31 +1,36 @@
 /**
- * SUNDAE Frontend — Axios Client (Mock for Prototype)
+ * Prototype Mode: network client is disabled.
  *
- * No real HTTP requests. Provides mock token functions
- * that other modules depend on.
+ * Endpoints should use mockDb instead of calling real backend.
+ * We keep exports for compatibility.
  */
 
 export async function refreshTokenOnce(): Promise<string | null> {
-    return "mock-access-token";
+    return null;
 }
 
 export async function getValidToken(): Promise<string | null> {
-    return "mock-access-token";
+    return null;
 }
 
-// Dummy apiClient — should not be called directly in prototype mode,
-// but exported for compatibility with imports (e.g. DashboardPage health check).
+type ApiResponse<T> = { data: T };
+
+const notAvailable = async () => {
+    throw new Error("Prototype Mode: apiClient is disabled");
+};
+
 const apiClient = {
-    get: async (_url: string, _config?: any) => ({ data: { services: { backend: true, ollama: true, supabase: true } } }),
-    post: async (_url: string, _data?: any, _config?: any) => ({ data: {} }),
-    put: async (_url: string, _data?: any, _config?: any) => ({ data: {} }),
-    patch: async (_url: string, _data?: any, _config?: any) => ({ data: {} }),
-    delete: async (_url: string, _config?: any) => ({ data: {} }),
-    request: async (_config: any) => ({ data: {} }),
-    interceptors: {
-        request: { use: () => {} },
-        response: { use: () => {} },
-    },
+    get: notAvailable,
+    post: notAvailable,
+    put: notAvailable,
+    patch: notAvailable,
+    delete: notAvailable,
+} as unknown as {
+    get: <T = unknown>(_url: string, _config?: unknown) => Promise<ApiResponse<T>>;
+    post: <T = unknown>(_url: string, _data?: unknown, _config?: unknown) => Promise<ApiResponse<T>>;
+    put: <T = unknown>(_url: string, _data?: unknown, _config?: unknown) => Promise<ApiResponse<T>>;
+    patch: <T = unknown>(_url: string, _data?: unknown, _config?: unknown) => Promise<ApiResponse<T>>;
+    delete: <T = unknown>(_url: string, _config?: unknown) => Promise<ApiResponse<T>>;
 };
 
 export default apiClient;

@@ -5,9 +5,9 @@
  * On mount, restores the session from localStorage if present.
  */
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { initPrototypeAuthFromStorage, useAuthStore } from "./store/authStore";
+import { useAuthStore } from "./store/authStore";
 
 // Layouts
 import DashboardLayout from "./layouts/DashboardLayout";
@@ -30,26 +30,37 @@ import WebChatPage from "./pages/WebChatPage";
 import IntegrationPage from "./pages/IntegrationPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import CreateOrgPage from "./pages/CreateOrgPage";
+import OrganizationPage from "./pages/OrganizationPage";
+import ProfilePage from "./pages/ProfilePage";
 
 // ── Auth Lifecycle Provider ─────────────────────────────────────
 
-function AuthProvider({ children }: { children: ReactNode }) {
+function AuthProvider({ children }: { children: React.ReactNode }) {
+    const setSession = useAuthStore((s) => s.setSession);
+    const fetchProfile = useAuthStore((s) => s.fetchProfile);
     const setLoading = useAuthStore((s) => s.setLoading);
 
     useEffect(() => {
-        // Safety timeout — never block longer than 5 seconds (accounts for slow networks)
-        const timeout = setTimeout(() => {
-            console.warn("[Auth] Session check timed out — proceeding without auth");
+        try {
+            const rawSession = localStorage.getItem("sundae_proto_session");
+            const rawUser = localStorage.getItem("sundae_proto_user");
+
+            if (rawSession) {
+                setSession(JSON.parse(rawSession));
+            }
+            if (rawUser) {
+                const user = JSON.parse(rawUser);
+                if (user?.id) {
+                    fetchProfile(user.id);
+                }
+            }
+        } catch {
+            // ignore
+        } finally {
             setLoading(false);
-        }, 5000);
-
-        initPrototypeAuthFromStorage();
-        clearTimeout(timeout);
-        setLoading(false);
-
-        return () => {
-            clearTimeout(timeout);
-        };
+        }
+        return;
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     return <>{children}</>;
@@ -68,18 +79,15 @@ function LoadingScreen() {
     );
 }
 
-function RoleHome() {
+// ── Role-based Home Redirect ─────────────────────────────────────
+
+function HomeRedirect() {
     const role = useAuthStore((s) => s.user?.role);
-
-    if (role === "admin") {
-        return <DashboardPage />;
+    // Regular users go straight to chatbot; support/admin go to dashboard
+    if (role === "user") {
+        return <Navigate to="/chat" replace />;
     }
-
-    if (role === "support") {
-        return <Navigate to="/approvals" replace />;
-    }
-
-    return <Navigate to="/chat" replace />;
+    return <DashboardPage />;
 }
 
 // ── App ─────────────────────────────────────────────────────────
@@ -106,17 +114,28 @@ export default function App() {
                         {/* ── Protected Routes (all roles) ───────────── */}
                         <Route element={<ProtectedRoute />}>
                             <Route element={<DashboardLayout />}>
-                                <Route path="/" element={<RoleHome />} />
+                                <Route path="/" element={<HomeRedirect />} />
 
                                 {/* Web Chat — all roles */}
                                 <Route path="/chat" element={<WebChatPage />} />
 
-                                {/* Admin only */}
-                                <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+                                {/* Create org — for approved users with no orgs */}
+                                <Route path="/create-org" element={<CreateOrgPage />} />
+
+                                {/* Profile — all roles */}
+                                <Route path="/profile" element={<ProfilePage />} />
+
+                                {/* Admin + User (owner) — content management pages */}
+                                <Route element={<ProtectedRoute allowedRoles={["user", "admin"]} />}>
                                     <Route path="/knowledge-base" element={<KnowledgeBasePage />} />
                                     <Route path="/bots" element={<BotsPage />} />
                                     <Route path="/inbox" element={<InboxPage />} />
                                     <Route path="/integration" element={<IntegrationPage />} />
+                                </Route>
+
+                                {/* Organization settings — all roles */}
+                                <Route element={<ProtectedRoute allowedRoles={["user", "support", "admin"]} />}>
+                                    <Route path="/organization" element={<OrganizationPage />} />
                                 </Route>
 
                                 {/* Support + Admin only */}

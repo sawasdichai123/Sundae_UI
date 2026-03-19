@@ -6,7 +6,6 @@
 
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../api/supabaseClient";
 import Spinner from "../components/Spinner";
 
 export default function ForgotPasswordPage() {
@@ -21,21 +20,7 @@ export default function ForgotPasswordPage() {
         setLoading(true);
         setError("");
 
-        const { error: err } = await supabase.auth.resetPasswordForEmail(
-            email.trim(),
-            { redirectTo: `${window.location.origin}/reset-password` },
-        );
-
-        if (err) {
-            setError(
-                err.message.includes("rate limit")
-                    ? "ส่งคำขอบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่"
-                    : "ไม่สามารถส่งอีเมลได้ กรุณาลองใหม่อีกครั้ง",
-            );
-            setLoading(false);
-            return;
-        }
-
+        await new Promise((r) => setTimeout(r, 700));
         setSent(true);
         setLoading(false);
     };
@@ -127,7 +112,7 @@ export default function ForgotPasswordPage() {
             )}
 
             <p className="text-[10px] text-steel-400 text-center mt-6">
-                &copy; 2025 SUNDAE &middot; Powered by Supabase Auth
+                &copy; 2026 SUNDAE &middot; Powered by Supabase Auth
             </p>
         </div>
     );

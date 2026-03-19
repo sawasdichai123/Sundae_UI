@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900">
+  <defs>
+    <clipPath id="mainClip"><rect x="256" y="64" width="1184" height="836"/></clipPath>
+  </defs>
+
+  <!-- ============ SIDEBAR ============ -->
+  <rect width="256" height="900" fill="#242527"/>
+  <rect x="20" y="16" width="32" height="32" rx="8" fill="#ffd100"/>
+  <text x="36" y="38" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#242527" text-anchor="middle">S</text>
+  <text x="64" y="30" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#fff">SUNDAE</text>
+  <text x="64" y="44" font-family="Inter, sans-serif" font-size="10" fill="#7e7f82">Enterprise AI</text>
+  <line x1="0" y1="64" x2="256" y2="64" stroke="#fff" stroke-opacity="0.08"/>
+  <rect x="12" y="76" width="232" height="40" rx="10" fill="#333436"/>
+  <text x="24" y="101" font-family="Inter, Noto Sans Thai, sans-serif" font-size="12" font-weight="500" fill="#d1d1d4">NT Corporation</text>
+
+  <!-- Nav: Dashboard -->
+  <svg x="24" y="142" width="20" height="20" viewBox="0 0 20 20" fill="#a9aaad"><path d="M10.707 2.293a1 1 0 0 0-1.414 0l-7 7a1 1 0 0 0 1.414 1.414L4 10.414V17a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-6.586l.293.293a1 1 0 0 0 1.414-1.414l-7-7Z"/></svg>
+  <text x="52" y="157" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#a9aaad">Dashboard</text>
+
+  <!-- Nav: Knowledge Base (active) -->
+  <rect x="12" y="172" width="232" height="40" rx="12" fill="rgba(255,209,0,0.2)"/>
+  <svg x="24" y="182" width="20" height="20" viewBox="0 0 20 20" fill="#ffd100"><path d="M10.75 16.82A7.462 7.462 0 0 1 15 15.5c.71 0 1.396.098 2.046.282A.75.75 0 0 0 18 15.06v-11a.75.75 0 0 0-.546-.721A9.006 9.006 0 0 0 15 3a8.963 8.963 0 0 0-4.25 1.065V16.82ZM9.25 4.065A8.963 8.963 0 0 0 5 3c-.85 0-1.673.118-2.454.339A.75.75 0 0 0 2 4.06v11a.75.75 0 0 0 .954.721A7.462 7.462 0 0 1 5 15.5c1.579 0 3.042.487 4.25 1.32V4.065Z"/></svg>
+  <text x="52" y="197" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#ffd100">Knowledge Base</text>
+
+  <!-- Nav: Bots -->
+  <svg x="24" y="222" width="20" height="20" viewBox="0 0 20 20" fill="#a9aaad"><path d="M4.632 3.533A2 2 0 0 1 6.577 2h6.846a2 2 0 0 1 1.945 1.533l1.976 8.234A3.489 3.489 0 0 0 16 11.5H4c-.476 0-.93.095-1.344.267l1.976-8.234Z"/><path fill-rule="evenodd" d="M4 13a2 2 0 1 0 0 4h12a2 2 0 1 0 0-4H4Z" clip-rule="evenodd"/></svg>
+  <text x="52" y="237" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#a9aaad">Bots</text>
+
+  <!-- Nav: Inbox, Integration, Organization, Approvals, Web Chat, Profile -->
+  <svg x="24" y="262" width="20" height="20" viewBox="0 0 20 20" fill="#a9aaad"><path fill-rule="evenodd" d="M3.43 2.524A41.29 41.29 0 0 1 10 2c2.236 0 4.43.18 6.57.524 1.437.231 2.43 1.49 2.43 2.902v5.148c0 1.413-.993 2.67-2.43 2.902a41.202 41.202 0 0 1-5.183.501.78.78 0 0 0-.528.224l-3.579 3.58A.75.75 0 0 1 6 17.25v-3.443a41.033 41.033 0 0 1-2.57-.33C2.993 13.244 2 11.986 2 10.573V5.426c0-1.413.993-2.67 2.43-2.902Z" clip-rule="evenodd"/></svg>
+  <text x="52" y="277" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#a9aaad">Inbox</text>
+
+  <text x="52" y="317" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#a9aaad">Integration</text>
+  <text x="52" y="357" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#a9aaad">Organization</text>
+  <text x="52" y="397" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#a9aaad">Approvals</text>
+  <text x="52" y="437" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#a9aaad">Web Chat</text>
+  <text x="52" y="477" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#a9aaad">Profile</text>
+
+  <!-- User Card -->
+  <line x1="0" y1="850" x2="256" y2="850" stroke="#fff" stroke-opacity="0.08"/>
+  <circle cx="32" cy="874" r="16" fill="#ffd100"/>
+  <text x="32" y="879" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#242527" text-anchor="middle">ณ</text>
+  <text x="56" y="868" font-family="Inter, Noto Sans Thai, sans-serif" font-size="12" font-weight="500" fill="#fff">ณัฐพล วงศ์สุวรรณ</text>
+  <rect x="166" y="858" width="42" height="18" rx="9" fill="#ffd100"/>
+  <text x="187" y="871" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#242527" text-anchor="middle">Admin</text>
+  <text x="56" y="884" font-family="Inter, sans-serif" font-size="10" fill="#7e7f82">admin@sundae.local</text>
+
+  <!-- ============ HEADER ============ -->
+  <rect x="256" y="0" width="1184" height="64" fill="#fff" fill-opacity="0.9"/>
+  <line x1="256" y1="64" x2="1440" y2="64" stroke="#e8e8ea"/>
+  <text x="288" y="37" font-family="Inter, sans-serif" font-size="14" fill="#7e7f82">SUNDAE</text>
+  <text x="340" y="37" font-family="Inter, sans-serif" font-size="14" fill="#d1d1d4">›</text>
+  <text x="356" y="37" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#333436">Knowledge Base</text>
+  <rect x="1340" y="22" width="72" height="28" rx="14" fill="#ecfdf5"/>
+  <circle cx="1356" cy="36" r="3" fill="#10b981"/>
+  <text x="1366" y="41" font-family="Inter, sans-serif" font-size="12" font-weight="500" fill="#047857">Online</text>
+
+  <!-- ============ MAIN CONTENT ============ -->
+  <g clip-path="url(#mainClip)">
+    <rect x="256" y="64" width="1184" height="836" fill="#f6f6f7"/>
+
+    <!-- Page Header -->
+    <text x="288" y="108" font-family="Inter, sans-serif" font-size="24" font-weight="700" fill="#242527">Knowledge</text>
+    <!-- Add button -->
+    <rect x="1140" y="86" width="244" height="40" rx="20" fill="#ffd100"/>
+    <text x="1162" y="111" font-family="Inter, sans-serif" font-size="14" fill="#242527">+</text>
+    <text x="1180" y="111" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#242527">Add knowledge collection</text>
+
+    <!-- Search bar -->
+    <rect x="288" y="136" width="400" height="42" rx="12" fill="#fff" stroke="#d1d1d4" stroke-width="1"/>
+    <svg x="300" y="148" width="16" height="16" viewBox="0 0 20 20" fill="#7e7f82"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clip-rule="evenodd"/></svg>
+    <text x="324" y="162" font-family="Inter, sans-serif" font-size="14" fill="#7e7f82">Search Models</text>
+
+    <!-- Document Card 1 -->
+    <rect x="288" y="198" width="1096" height="96" rx="16" fill="#fff" stroke="#d1d1d4" stroke-width="1" stroke-dasharray="6,3"/>
+    <rect x="308" y="218" width="36" height="36" rx="12" fill="#f6f6f7"/>
+    <svg x="316" y="226" width="20" height="20" viewBox="0 0 20 20" fill="#7e7f82"><path fill-rule="evenodd" d="M4.5 2A1.5 1.5 0 0 0 3 3.5v13A1.5 1.5 0 0 0 4.5 18h11a1.5 1.5 0 0 0 1.5-1.5V7.621a1.5 1.5 0 0 0-.44-1.06l-4.12-4.122A1.5 1.5 0 0 0 11.378 2H4.5Z" clip-rule="evenodd"/></svg>
+    <text x="356" y="234" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#242527">HR_Policy_2026.pdf</text>
+    <text x="356" y="252" font-family="Inter, sans-serif" font-size="12" fill="#7e7f82">PDF Document · 245 KB</text>
+    <!-- Status badge: ready -->
+    <rect x="356" y="262" width="60" height="20" rx="10" fill="#ecfdf5"/>
+    <circle cx="368" cy="272" r="3" fill="#10b981"/>
+    <text x="378" y="276" font-family="Inter, Noto Sans Thai, sans-serif" font-size="11" font-weight="500" fill="#059669">พร้อมใช้</text>
+    <text x="430" y="276" font-family="Inter, sans-serif" font-size="11" fill="#7e7f82">Update ล่าสุด 2 ชม. ก่อน</text>
+
+    <!-- Document Card 2 -->
+    <rect x="288" y="306" width="1096" height="96" rx="16" fill="#fff" stroke="#d1d1d4" stroke-width="1" stroke-dasharray="6,3"/>
+    <rect x="308" y="326" width="36" height="36" rx="12" fill="#f6f6f7"/>
+    <svg x="316" y="334" width="20" height="20" viewBox="0 0 20 20" fill="#7e7f82"><path fill-rule="evenodd" d="M4.5 2A1.5 1.5 0 0 0 3 3.5v13A1.5 1.5 0 0 0 4.5 18h11a1.5 1.5 0 0 0 1.5-1.5V7.621a1.5 1.5 0 0 0-.44-1.06l-4.12-4.122A1.5 1.5 0 0 0 11.378 2H4.5Z" clip-rule="evenodd"/></svg>
+    <text x="356" y="342" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#242527">IT_Infrastructure_Guide.pdf</text>
+    <text x="356" y="360" font-family="Inter, sans-serif" font-size="12" fill="#7e7f82">PDF Document · 512 KB</text>
+    <rect x="356" y="370" width="60" height="20" rx="10" fill="#ecfdf5"/>
+    <circle cx="368" cy="380" r="3" fill="#10b981"/>
+    <text x="378" y="384" font-family="Inter, Noto Sans Thai, sans-serif" font-size="11" font-weight="500" fill="#059669">พร้อมใช้</text>
+    <text x="430" y="384" font-family="Inter, sans-serif" font-size="11" fill="#7e7f82">Update ล่าสุด 5 ชม. ก่อน</text>
+
+    <!-- Document Card 3 -->
+    <rect x="288" y="414" width="1096" height="96" rx="16" fill="#fff" stroke="#d1d1d4" stroke-width="1" stroke-dasharray="6,3"/>
+    <rect x="308" y="434" width="36" height="36" rx="12" fill="#f6f6f7"/>
+    <svg x="316" y="442" width="20" height="20" viewBox="0 0 20 20" fill="#7e7f82"><path fill-rule="evenodd" d="M4.5 2A1.5 1.5 0 0 0 3 3.5v13A1.5 1.5 0 0 0 4.5 18h11a1.5 1.5 0 0 0 1.5-1.5V7.621a1.5 1.5 0 0 0-.44-1.06l-4.12-4.122A1.5 1.5 0 0 0 11.378 2H4.5Z" clip-rule="evenodd"/></svg>
+    <text x="356" y="450" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#242527">Finance_Report_Q4.pdf</text>
+    <text x="356" y="468" font-family="Inter, sans-serif" font-size="12" fill="#7e7f82">PDF Document · 320 KB</text>
+    <rect x="356" y="478" width="88" height="20" rx="10" fill="#fffbeb"/>
+    <circle cx="368" cy="488" r="3" fill="#f59e0b" opacity="0.8"/>
+    <text x="378" y="492" font-family="Inter, Noto Sans Thai, sans-serif" font-size="11" font-weight="500" fill="#d97706">กำลังประมวลผล</text>
+    <text x="458" y="492" font-family="Inter, sans-serif" font-size="11" fill="#7e7f82">Update ล่าสุด เมื่อสักครู่</text>
+  </g>
+</svg>

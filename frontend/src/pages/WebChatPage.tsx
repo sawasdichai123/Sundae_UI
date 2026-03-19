@@ -17,6 +17,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { chatApi, botsApi, inboxApi } from "../api/endpoints";
 import { useAuthStore } from "../store/authStore";
+import { useOrgStore } from "../store/orgStore";
 import type { Bot, SessionStatus } from "../types";
 
 // ── Types ───────────────────────────────────────────────────────
@@ -31,8 +32,9 @@ interface ChatBubble {
 
 // ── Helpers ──────────────────────────────────────────────────────
 
-/** localStorage key per bot for session persistence */
-const sessionKey = (botId: string) => `sundae_chat_session_${botId}`;
+/** localStorage key per bot+org for session persistence */
+const sessionKey = (botId: string, orgId?: string) =>
+    orgId ? `sundae_chat_session_${orgId}_${botId}` : `sundae_chat_session_${botId}`;
 
 // ── Icons ───────────────────────────────────────────────────────
 
@@ -84,7 +86,8 @@ export default function WebChatPage() {
 
     // Auth store
     const user = useAuthStore((s) => s.user);
-    const orgId = user?.organization_id || import.meta.env.VITE_DEFAULT_ORG_ID || "";
+    const activeOrgId = useOrgStore((s) => s.activeOrgId);
+    const orgId = activeOrgId || user?.organization_id || import.meta.env.VITE_DEFAULT_ORG_ID || "";
     const [platformUserId] = useState(() => user?.id || `web-${crypto.randomUUID().slice(0, 8)}`);
 
     // Bot selector
@@ -147,22 +150,22 @@ export default function WebChatPage() {
 
     const selectedBot = bots.find((b) => b.id === selectedBotId);
 
-    // ── Fix 2: Session persistence — load or create sessionId per bot ──
+    // ── Fix 2: Session persistence — load or create sessionId per bot+org ──
     useEffect(() => {
         if (!selectedBotId) return;
-        const stored = localStorage.getItem(sessionKey(selectedBotId));
+        const stored = localStorage.getItem(sessionKey(selectedBotId, orgId));
         if (stored) {
             setSessionId(stored);
         } else {
             const newId = crypto.randomUUID();
-            localStorage.setItem(sessionKey(selectedBotId), newId);
+            localStorage.setItem(sessionKey(selectedBotId, orgId), newId);
             setSessionId(newId);
         }
         // Reset messages — will be loaded from DB by the next useEffect
         setMessages([]);
         setSessionStatus("active");
         lastPollTimestampRef.current = null;
-    }, [selectedBotId]);
+    }, [selectedBotId, orgId]);
 
     // ── Fix 2: Reload messages + session status from DB on mount ────────
     useEffect(() => {
@@ -239,14 +242,16 @@ export default function WebChatPage() {
     // ── Fix 1: Poll for admin replies + sync session status ─────────────
     // Use a ref to read sessionStatus inside the interval without
     // re-creating the interval every time the status changes.
-    const sessionStatusRef = useRef<SessionStatus>(sessionStatus);
+    const sessionStatusRef = useRef(sessionStatus);
     useEffect(() => { sessionStatusRef.current = sessionStatus; }, [sessionStatus]);
 
     // Poll in any non-terminal status so we catch admin-initiated changes
     useEffect(() => {
-        if (isLoading || !orgId || !sessionId) return;
+        if (!orgId || !sessionId) return;
 
         const interval = setInterval(async () => {
+            // No need to poll terminal statuses
+            if (sessionStatusRef.current === "resolved") return;
             if (document.hidden) return; // skip polling when tab is not visible
             try {
                 const after = lastPollTimestampRef.current || new Date(0).toISOString();
@@ -276,32 +281,39 @@ export default function WebChatPage() {
                 }
 
                 // Sync session status from backend — only react when it actually changes
-                const backendStatus: SessionStatus | null = (pollData as any)?.session_status ?? null;
+                const backendStatus = pollData?.session_status;
                 if (backendStatus && backendStatus !== sessionStatusRef.current) {
-                    setSessionStatus(backendStatus);
-                    switch (backendStatus) {
-                        case "active":
-                            setMessages((prev) => [
-                                ...prev,
-                                {
-                                    id: crypto.randomUUID(),
-                                    role: "system",
-                                    content: "เจ้าหน้าที่คืนร่างให้ AI แล้ว — สามารถถามคำถามได้ตามปกติ",
-                                    timestamp: new Date(),
-                                },
-                            ]);
-                            break;
-                        case "helped":
-                            setMessages((prev) => [
-                                ...prev,
-                                {
-                                    id: crypto.randomUUID(),
-                                    role: "system",
-                                    content: "เจ้าหน้าที่ช่วยเหลือเรียบร้อยแล้ว — หากต้องการติดต่ออีกครั้งสามารถกดเรียกเจ้าหน้าที่ได้",
-                                    timestamp: new Date(),
-                                },
-                            ]);
-                            break;
+                    setSessionStatus(backendStatus as SessionStatus);
+                    if (backendStatus === "active") {
+                        setMessages((prev) => [
+                            ...prev,
+                            {
+                                id: crypto.randomUUID(),
+                                role: "system",
+                                content: "เจ้าหน้าที่คืนร่างให้ AI แล้ว — สามารถถามคำถามได้ตามปกติ",
+                                timestamp: new Date(),
+                            },
+                        ]);
+                    } else if (backendStatus === "helped") {
+                        setMessages((prev) => [
+                            ...prev,
+                            {
+                                id: crypto.randomUUID(),
+                                role: "system",
+                                content: "เจ้าหน้าที่ช่วยเหลือเรียบร้อยแล้ว — หากต้องการติดต่ออีกครั้งสามารถกดเรียกเจ้าหน้าที่ได้",
+                                timestamp: new Date(),
+                            },
+                        ]);
+                    } else if (backendStatus === "resolved") {
+                        setMessages((prev) => [
+                            ...prev,
+                            {
+                                id: crypto.randomUUID(),
+                                role: "system",
+                                content: "เจ้าหน้าที่ปิดเคสแล้ว — ขอบคุณที่ใช้บริการ",
+                                timestamp: new Date(),
+                            },
+                        ]);
                     }
                 }
             } catch (err) {
@@ -335,6 +347,7 @@ export default function WebChatPage() {
         }
 
         // Success — update state
+        setSessionStatus("human_takeover");
         lastPollTimestampRef.current = new Date().toISOString();
         setHandoffRequesting(false);
 
@@ -354,7 +367,7 @@ export default function WebChatPage() {
     const handleNewChat = () => {
         if (!selectedBotId) return;
         const newId = crypto.randomUUID();
-        localStorage.setItem(sessionKey(selectedBotId), newId);
+        localStorage.setItem(sessionKey(selectedBotId, orgId), newId);
         setSessionId(newId);
         setMessages([]);
         setSessionStatus("active");
@@ -367,7 +380,7 @@ export default function WebChatPage() {
     const handleSelectSession = (hist: HistorySession) => {
         if (hist.bot_id) {
             setSelectedBotId(hist.bot_id);
-            localStorage.setItem(sessionKey(hist.bot_id), hist.id);
+            localStorage.setItem(sessionKey(hist.bot_id, orgId), hist.id);
         }
         setSessionId(hist.id);
         setMessages([]);
@@ -385,7 +398,7 @@ export default function WebChatPage() {
     const handleSend = async () => {
         const query = input.trim();
         if (!query || !selectedBotId || !sessionId) return;
-        if (isLoading) return;
+        if (isLoading && sessionStatus !== "human_takeover") return;
 
         const userMsg: ChatBubble = {
             id: crypto.randomUUID(),
@@ -396,6 +409,17 @@ export default function WebChatPage() {
         setMessages((prev) => [...prev, userMsg]);
         setInput("");
         if (inputRef.current) inputRef.current.style.height = "auto";
+
+        // During human_takeover, send a plain message (no RAG)
+        if (sessionStatus === "human_takeover") {
+            try {
+                await chatApi.sendMessage(sessionId, orgId, query);
+            } catch (err) {
+                console.error("[Chat] Failed to send message during handoff:", err);
+            }
+            inputRef.current?.focus();
+            return;
+        }
 
         setIsLoading(true);
         setIsStreaming(false);
@@ -563,9 +587,27 @@ export default function WebChatPage() {
                                         <span className="text-xs font-medium text-steel-700 truncate max-w-[140px]">
                                             {hist.bot_name || "Bot"}
                                         </span>
-                                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${hist.status === "active" ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"
-                                            }`}>
-                                            {hist.status === "active" ? "Active" : "ช่วยเหลือเรียบร้อย"}
+                                        <span
+                                            className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${hist.status === "active"
+                                                ? "bg-emerald-50 text-emerald-600"
+                                                : hist.status === "human_takeover"
+                                                    ? "bg-amber-50 text-amber-600"
+                                                    : hist.status === "helped"
+                                                        ? "bg-blue-50 text-blue-600"
+                                                        : hist.status === "resolved"
+                                                            ? "bg-steel-100 text-steel-500"
+                                                            : "bg-steel-100 text-steel-500"
+                                                }`}
+                                        >
+                                            {hist.status === "active"
+                                                ? "Active"
+                                                : hist.status === "human_takeover"
+                                                    ? "รับเรื่อง"
+                                                    : hist.status === "helped"
+                                                        ? "ช่วยเหลือเรียบร้อย"
+                                                        : hist.status === "resolved"
+                                                            ? "ปิดแล้ว"
+                                                            : "ปิดแล้ว"}
                                         </span>
                                     </div>
                                     <p className="text-[11px] text-steel-400">
@@ -797,13 +839,41 @@ export default function WebChatPage() {
                                 </div>
                             )}
 
+                            {/* Fix 3: Resolved state — show "start new chat" prompt */}
+                            {sessionStatus === "resolved" && (
+                                <div className="flex flex-col items-center gap-3 py-6 animate-fade-in">
+                                    <div className="bg-steel-50 text-steel-500 text-xs font-medium px-4 py-2 rounded-full border border-steel-200">
+                                        เคสนี้ถูกปิดแล้ว
+                                    </div>
+                                    <button
+                                        onClick={handleNewChat}
+                                        className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-brand-400 rounded-xl hover:bg-brand-500 transition-colors cursor-pointer shadow-sm shadow-brand-200"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4">
+                                            <path d="M8.75 3.75a.75.75 0 0 0-1.5 0v3.5h-3.5a.75.75 0 0 0 0 1.5h3.5v3.5a.75.75 0 0 0 1.5 0v-3.5h3.5a.75.75 0 0 0 0-1.5h-3.5v-3.5Z" />
+                                        </svg>
+                                        เริ่มแชทใหม่
+                                    </button>
+                                </div>
+                            )}
+
                             <div ref={messagesEndRef} />
                         </div>
                     </div>
                 </div>
 
+                {/* ── Human Takeover Banner ─────────────────────────── */}
+                {sessionStatus === "human_takeover" && (
+                    <div className="bg-blue-50 border-t border-blue-200 px-4 py-2.5 text-center">
+                        <span className="text-xs font-medium text-blue-700">
+                            เจ้าหน้าที่กำลังดูแลคุณอยู่ — สามารถพิมพ์ข้อความเพิ่มเติมได้
+                        </span>
+                    </div>
+                )}
+
                 {/* ── Input Area (yellow border per Figma) ─────────────── */}
-                <div className="bg-white/80 backdrop-blur-xl border-t border-steel-100">
+                {sessionStatus !== "resolved" && (
+                    <div className="bg-white/80 backdrop-blur-xl border-t border-steel-100">
                         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4">
                             {/* Request Human button — only when session has messages & still active & not requesting */}
                             {messages.length > 0 && (sessionStatus === "active" || sessionStatus === "helped") && !isLoading && !handoffRequesting && (
@@ -825,12 +895,12 @@ export default function WebChatPage() {
                                     value={input}
                                     onChange={handleInputChange}
                                     onKeyDown={handleKeyDown}
-                                    placeholder="How can I help today?..."
-                                    disabled={isLoading || !selectedBotId || !sessionId}
+                                    placeholder={sessionStatus === "human_takeover" ? "พิมพ์ข้อความถึงเจ้าหน้าที่..." : "How can I help today?..."}
+                                    disabled={(isLoading && sessionStatus !== "human_takeover") || !selectedBotId || !sessionId}
                                     rows={1}
                                     className="flex-1 bg-transparent text-sm text-steel-800 placeholder:text-steel-400 resize-none outline-none max-h-[150px] py-1 leading-relaxed disabled:opacity-50"
                                 />
-                                {isLoading ? (
+                                {isLoading && sessionStatus !== "human_takeover" ? (
                                     <button
                                         onClick={handleCancel}
                                         className="w-9 h-9 bg-red-500 text-white rounded-xl flex items-center justify-center hover:bg-red-600 transition-all duration-200 cursor-pointer shrink-0"
@@ -853,6 +923,7 @@ export default function WebChatPage() {
                             </p>
                         </div>
                     </div>
+                )}
             </div> {/* end Main Chat Area */}
         </div>
     );

@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900">
+  <defs>
+    <clipPath id="mainClip"><rect x="256" y="64" width="1184" height="836"/></clipPath>
+  </defs>
+
+  <!-- ============ SIDEBAR (Support) ============ -->
+  <rect width="256" height="900" fill="#242527"/>
+  <rect x="20" y="16" width="32" height="32" rx="8" fill="#ffd100"/>
+  <text x="36" y="38" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#242527" text-anchor="middle">S</text>
+  <text x="64" y="30" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#fff">SUNDAE</text>
+  <text x="64" y="44" font-family="Inter, sans-serif" font-size="10" fill="#7e7f82">Enterprise AI</text>
+  <line x1="0" y1="64" x2="256" y2="64" stroke="#fff" stroke-opacity="0.08"/>
+  <rect x="12" y="76" width="232" height="40" rx="10" fill="#333436"/>
+  <text x="24" y="101" font-family="Inter, Noto Sans Thai, sans-serif" font-size="12" font-weight="500" fill="#d1d1d4">NT Corporation</text>
+
+  <text x="52" y="157" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#a9aaad">Approvals</text>
+  <text x="52" y="197" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#a9aaad">Web Chat</text>
+  <text x="52" y="237" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#a9aaad">Organization</text>
+  <rect x="12" y="252" width="232" height="40" rx="12" fill="rgba(255,209,0,0.2)"/>
+  <text x="52" y="277" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#ffd100">Profile</text>
+
+  <line x1="0" y1="850" x2="256" y2="850" stroke="#fff" stroke-opacity="0.08"/>
+  <circle cx="32" cy="874" r="16" fill="#ffd100"/>
+  <text x="32" y="879" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#242527" text-anchor="middle">พ</text>
+  <text x="56" y="868" font-family="Inter, Noto Sans Thai, sans-serif" font-size="12" font-weight="500" fill="#fff">พิมพ์ใจ ศรีสุข</text>
+  <rect x="152" y="858" width="56" height="18" rx="9" fill="#ede9fe"/>
+  <text x="180" y="871" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#7c3aed" text-anchor="middle">Support</text>
+  <text x="56" y="884" font-family="Inter, sans-serif" font-size="10" fill="#7e7f82">support@sundae.local</text>
+
+  <!-- ============ HEADER ============ -->
+  <rect x="256" y="0" width="1184" height="64" fill="#fff" fill-opacity="0.9"/>
+  <line x1="256" y1="64" x2="1440" y2="64" stroke="#e8e8ea"/>
+  <text x="288" y="37" font-family="Inter, sans-serif" font-size="14" fill="#7e7f82">SUNDAE</text>
+  <text x="340" y="37" font-family="Inter, sans-serif" font-size="14" fill="#d1d1d4">›</text>
+  <text x="356" y="37" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#333436">Profile</text>
+  <rect x="1340" y="22" width="72" height="28" rx="14" fill="#ecfdf5"/>
+  <circle cx="1356" cy="36" r="3" fill="#10b981"/>
+  <text x="1366" y="41" font-family="Inter, sans-serif" font-size="12" font-weight="500" fill="#047857">Online</text>
+
+  <!-- ============ MAIN CONTENT ============ -->
+  <g clip-path="url(#mainClip)">
+    <rect x="256" y="64" width="1184" height="836" fill="#f6f6f7"/>
+
+    <text x="508" y="108" font-family="Inter, Noto Sans Thai, sans-serif" font-size="24" font-weight="700" fill="#242527">โปรไฟล์</text>
+    <text x="508" y="130" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" fill="#6a6b6e">ข้อมูลส่วนตัวและการเป็นสมาชิกองค์กร</text>
+
+    <!-- Profile Info -->
+    <rect x="508" y="152" width="600" height="100" rx="16" fill="#fff" stroke="#e8e8ea" stroke-width="1"/>
+    <text x="532" y="180" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" font-weight="600" fill="#333436">ข้อมูลส่วนตัว</text>
+    <circle cx="548" cy="222" r="28" fill="#fff9cc"/>
+    <text x="548" y="229" font-family="Inter, sans-serif" font-size="20" font-weight="700" fill="#997d00" text-anchor="middle">พ</text>
+    <text x="588" y="216" font-family="Inter, Noto Sans Thai, sans-serif" font-size="16" font-weight="600" fill="#242527">พิมพ์ใจ ศรีสุข</text>
+    <!-- Support badge (amber) -->
+    <rect x="702" y="202" width="60" height="20" rx="10" fill="#fef3c7"/>
+    <text x="732" y="216" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#b45309" text-anchor="middle">support</text>
+    <text x="588" y="236" font-family="Inter, sans-serif" font-size="14" fill="#6a6b6e">support@sundae.local</text>
+
+    <!-- My Organizations -->
+    <rect x="508" y="270" width="600" height="140" rx="16" fill="#fff" stroke="#e8e8ea" stroke-width="1"/>
+    <text x="532" y="298" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" font-weight="600" fill="#333436">องค์กรของฉัน (1)</text>
+    <line x1="508" y1="314" x2="1108" y2="314" stroke="#e8e8ea"/>
+    <rect x="532" y="326" width="32" height="32" rx="8" fill="rgba(255,209,0,0.2)"/>
+    <text x="548" y="348" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#997d00" text-anchor="middle">N</text>
+    <text x="576" y="346" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#333436">NT Corporation</text>
+    <rect x="1020" y="334" width="52" height="20" rx="10" fill="#e8e8ea"/>
+    <text x="1046" y="348" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#6a6b6e" text-anchor="middle">member</text>
+    <!-- Leave button (support is member, not owner) -->
+    <rect x="1004" y="360" width="88" height="28" rx="12" fill="#fee2e2"/>
+    <text x="1048" y="379" font-family="Inter, Noto Sans Thai, sans-serif" font-size="11" font-weight="700" fill="#b91c1c" text-anchor="middle">ออกจากองค์กร</text>
+
+    <!-- Pending Invitations -->
+    <rect x="508" y="428" width="600" height="100" rx="16" fill="#fff" stroke="#e8e8ea" stroke-width="1"/>
+    <text x="532" y="456" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" font-weight="600" fill="#333436">คำเชิญที่ได้รับ</text>
+    <line x1="508" y1="472" x2="1108" y2="472" stroke="#e8e8ea"/>
+    <text x="808" y="506" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" fill="#7e7f82" text-anchor="middle">ไม่มีคำเชิญที่รอดำเนินการ</text>
+  </g>
+</svg>

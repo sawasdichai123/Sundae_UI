@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900">
+  <defs>
+    <clipPath id="mainClip"><rect x="256" y="64" width="1184" height="836"/></clipPath>
+  </defs>
+
+  <!-- SIDEBAR (Pending — no nav items, locked) -->
+  <rect width="256" height="900" fill="#242527"/>
+  <rect x="20" y="16" width="32" height="32" rx="8" fill="#ffd100"/>
+  <text x="36" y="38" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#242527" text-anchor="middle">S</text>
+  <text x="64" y="30" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#fff">SUNDAE</text>
+  <text x="64" y="44" font-family="Inter, sans-serif" font-size="10" fill="#7e7f82">Enterprise AI</text>
+  <line x1="0" y1="64" x2="256" y2="64" stroke="#fff" stroke-opacity="0.08"/>
+
+  <!-- No org switcher for pending user -->
+  <!-- No nav items — lockout state -->
+  <text x="128" y="200" font-family="Inter, Noto Sans Thai, sans-serif" font-size="12" fill="#7e7f82" text-anchor="middle">ไม่มีเมนูที่ใช้ได้</text>
+
+  <!-- User Card — Pending badge (amber) -->
+  <line x1="0" y1="850" x2="256" y2="850" stroke="#fff" stroke-opacity="0.08"/>
+  <circle cx="32" cy="874" r="16" fill="#ffd100"/>
+  <text x="32" y="879" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#242527" text-anchor="middle">ว</text>
+  <text x="56" y="868" font-family="Inter, Noto Sans Thai, sans-serif" font-size="12" font-weight="500" fill="#fff">วิภาวี รักษ์ดี</text>
+  <rect x="148" y="858" width="60" height="18" rx="9" fill="#fffbeb"/>
+  <text x="178" y="871" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#d97706" text-anchor="middle">Pending</text>
+  <text x="56" y="884" font-family="Inter, sans-serif" font-size="10" fill="#7e7f82">pending@sundae.local</text>
+
+  <!-- HEADER -->
+  <rect x="256" y="0" width="1184" height="64" fill="#fff" fill-opacity="0.9"/>
+  <line x1="256" y1="64" x2="1440" y2="64" stroke="#e8e8ea"/>
+  <text x="288" y="37" font-family="Inter, sans-serif" font-size="14" fill="#7e7f82">SUNDAE</text>
+  <text x="340" y="37" font-family="Inter, sans-serif" font-size="14" fill="#d1d1d4">›</text>
+  <text x="356" y="37" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#333436">Dashboard</text>
+
+  <!-- MAIN CONTENT — Lockout Screen -->
+  <g clip-path="url(#mainClip)">
+    <rect x="256" y="64" width="1184" height="836" fill="#f6f6f7"/>
+
+    <!-- Centered lockout card -->
+    <rect x="548" y="240" width="600" height="340" rx="24" fill="#fff" stroke="#e8e8ea" stroke-width="1"/>
+
+    <!-- Lock icon circle -->
+    <circle cx="848" cy="310" r="40" fill="#fffbeb"/>
+    <text x="848" y="322" font-family="Inter, sans-serif" font-size="36" text-anchor="middle">🔒</text>
+
+    <!-- Title -->
+    <text x="848" y="380" font-family="Inter, Noto Sans Thai, sans-serif" font-size="22" font-weight="700" fill="#242527" text-anchor="middle">รอการอนุมัติ</text>
+
+    <!-- Description -->
+    <text x="848" y="412" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" fill="#6a6b6e" text-anchor="middle">บัญชีของคุณอยู่ระหว่างรอการอนุมัติจากเจ้าหน้าที่</text>
+    <text x="848" y="434" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" fill="#6a6b6e" text-anchor="middle">กรุณารอสักครู่ หรือติดต่อ Support เพื่อเร่งรัด</text>
+
+    <!-- Status badge -->
+    <rect x="788" y="460" width="120" height="32" rx="16" fill="#fffbeb" stroke="#fde68a" stroke-width="1"/>
+    <circle cx="808" cy="476" r="4" fill="#f59e0b"/>
+    <text x="818" y="481" font-family="Inter, Noto Sans Thai, sans-serif" font-size="12" font-weight="600" fill="#d97706">รอดำเนินการ...</text>
+
+    <!-- Logout button -->
+    <rect x="748" y="510" width="200" height="44" rx="12" fill="#e8e8ea"/>
+    <text x="848" y="537" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" font-weight="700" fill="#545659" text-anchor="middle">ออกจากระบบ</text>
+  </g>
+</svg>

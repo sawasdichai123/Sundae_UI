@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900">
+  <defs>
+    <filter id="cardShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="20" flood-color="#000" flood-opacity="0.2"/>
+    </filter>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#242527"/>
+      <stop offset="50%" stop-color="#333436"/>
+      <stop offset="100%" stop-color="#434547"/>
+    </linearGradient>
+    <filter id="blur1" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="60"/>
+    </filter>
+  </defs>
+
+  <!-- Background gradient -->
+  <rect width="1440" height="900" fill="url(#bgGrad)"/>
+  <circle cx="1080" cy="225" r="192" fill="#ffd100" fill-opacity="0.08" filter="url(#blur1)"/>
+  <circle cx="360" cy="675" r="192" fill="#6a6b6e" fill-opacity="0.1" filter="url(#blur1)"/>
+
+  <!-- Card -->
+  <rect x="536" y="100" width="368" height="640" rx="24" fill="#fff" filter="url(#cardShadow)"/>
+
+  <!-- Brand Header -->
+  <rect x="568" y="132" width="40" height="40" rx="12" fill="#ffd100"/>
+  <text x="588" y="159" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#242527" text-anchor="middle">S</text>
+  <text x="620" y="148" font-family="Inter, Noto Sans Thai, sans-serif" font-size="18" font-weight="700" fill="#242527">สมัครใช้งาน</text>
+  <text x="620" y="165" font-family="Inter, sans-serif" font-size="12" fill="#7e7f82">SUNDAE Admin Dashboard</text>
+
+  <!-- Tab Switcher -->
+  <rect x="568" y="190" width="304" height="40" rx="12" fill="#e8e8ea"/>
+  <!-- Inactive tab (login) -->
+  <text x="646" y="215" font-family="Inter, Noto Sans Thai, sans-serif" font-size="12" font-weight="600" fill="#7e7f82" text-anchor="middle">เข้าสู่ระบบ</text>
+  <!-- Active tab (register) -->
+  <rect x="720" y="194" width="148" height="32" rx="8" fill="#fff"/>
+  <text x="794" y="215" font-family="Inter, Noto Sans Thai, sans-serif" font-size="12" font-weight="600" fill="#242527" text-anchor="middle">สมัครใช้งาน</text>
+
+  <!-- Full Name Label -->
+  <text x="568" y="258" font-family="Inter, Noto Sans Thai, sans-serif" font-size="12" font-weight="500" fill="#545659">ชื่อ-นามสกุล</text>
+  <!-- Full Name Input -->
+  <rect x="568" y="266" width="304" height="42" rx="12" fill="#f6f6f7" stroke="#d1d1d4" stroke-width="1"/>
+  <text x="584" y="292" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" fill="#a9aaad">สมชาย ใจดี</text>
+
+  <!-- Email Label -->
+  <text x="568" y="334" font-family="Inter, Noto Sans Thai, sans-serif" font-size="12" font-weight="500" fill="#545659">อีเมล</text>
+  <!-- Email Input -->
+  <rect x="568" y="342" width="304" height="42" rx="12" fill="#f6f6f7" stroke="#d1d1d4" stroke-width="1"/>
+  <text x="584" y="368" font-family="Inter, sans-serif" font-size="14" fill="#a9aaad">name@company.com</text>
+
+  <!-- Password Label -->
+  <text x="568" y="410" font-family="Inter, Noto Sans Thai, sans-serif" font-size="12" font-weight="500" fill="#545659">รหัสผ่าน (อย่างน้อย 6 ตัว)</text>
+  <!-- Password Input -->
+  <rect x="568" y="418" width="304" height="42" rx="12" fill="#f6f6f7" stroke="#d1d1d4" stroke-width="1"/>
+  <text x="584" y="444" font-family="Inter, sans-serif" font-size="14" fill="#a9aaad">••••••••</text>
+
+  <!-- Register Button -->
+  <rect x="568" y="484" width="304" height="48" rx="12" fill="#333436"/>
+  <text x="720" y="514" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">สมัครใช้งาน</text>
+
+  <!-- Approval notice -->
+  <text x="720" y="556" font-family="Inter, Noto Sans Thai, sans-serif" font-size="10" fill="#7e7f82" text-anchor="middle">สมัครแล้วต้องรอ Support อนุมัติก่อนจึงจะใช้ฟีเจอร์ทั้งหมดได้</text>
+
+  <!-- Footer -->
+  <text x="720" y="600" font-family="Inter, sans-serif" font-size="10" fill="#7e7f82" text-anchor="middle">© 2026 SUNDAE · Powered by Supabase Auth</text>
+
+  <!-- Bottom footer outside card -->
+  <text x="720" y="770" font-family="Inter, sans-serif" font-size="11" fill="#7e7f82" text-anchor="middle">© 2026 SUNDAE · Enterprise AI Platform</text>
+</svg>

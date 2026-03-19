@@ -1,53 +1,65 @@
 /**
- * SUNDAE Frontend — API Endpoints (Mock for Prototype)
+ * SUNDAE Frontend — API Endpoint Definitions (Prototype Mode)
  *
- * All API functions operate on in-memory mock data.
- * No real HTTP requests are made.
+ * All endpoints are backed by localStorage-based mockDb.
  */
 
+import { mockDb } from "./mockDb";
 import type {
     Bot,
+    ChatAskResponse,
+    DocumentUploadResponse,
+    ChatSession,
+    OrgInvitation,
+    OrgMember,
+    OrgMembership,
+    MyInvitation,
+    PendingUser,
     PlatformSource,
 } from "../types";
-import type { ChatMessage } from "../types";
-import { mockDb } from "./mockDb";
 
-// ── Helper ──────────────────────────────────────────────────────
+type ApiOk<T> = { data: T };
 
-const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-function wrap<T>(data: T) {
+function wrap<T>(data: T): ApiOk<T> {
     return { data };
+}
+
+function delay(ms: number) {
+    return new Promise<void>((r) => setTimeout(r, ms));
 }
 
 // ── Documents ───────────────────────────────────────────────────
 
 export const documentsApi = {
-    upload: async (_file: File, _botId: string | null, _organizationId: string) => {
-        await delay(800);
-        return wrap(mockDb.uploadDocument(_file, _botId, _organizationId));
+    upload: async (file: File, botId: string | null, organizationId: string) => {
+        await delay(650);
+        const res = mockDb.uploadDocument(file, botId, organizationId);
+        return wrap<DocumentUploadResponse>(res);
     },
 
-    list: async (_organizationId: string) => {
-        await delay(300);
-        return wrap(mockDb.listDocuments(_organizationId));
+    list: async (organizationId: string) => {
+        await delay(250);
+        return wrap(mockDb.listDocuments(organizationId));
     },
 
-    getStatus: async (documentId: string, _organizationId: string) => {
-        await delay(100);
-        const docs = mockDb.listDocuments(_organizationId);
-        const doc = docs.find((d) => d.id === documentId);
-        return wrap(doc || docs[0]);
-    },
-
-    delete: async (documentId: string, _organizationId: string) => {
-        await delay(300);
-        return wrap(mockDb.deleteDocument(documentId));
-    },
-
-    linkBot: async (documentId: string, _organizationId: string, botId: string | null) => {
+    getStatus: async (documentId: string, organizationId: string) => {
         await delay(200);
-        return wrap(mockDb.linkDocumentToBot(documentId, botId));
+        const doc = mockDb.listDocuments(organizationId).find((d) => d.id === documentId) ?? null;
+        return wrap(doc as any);
+    },
+
+    delete: async (documentId: string, organizationId: string) => {
+        await delay(200);
+        void organizationId;
+        mockDb.deleteDocument(documentId);
+        return wrap({ ok: true } as any);
+    },
+
+    linkBot: async (documentId: string, organizationId: string, botId: string | null) => {
+        await delay(200);
+        void organizationId;
+        mockDb.linkDocumentToBot(documentId, botId);
+        return wrap({ ok: true } as any);
     },
 };
 
@@ -62,21 +74,21 @@ export interface ChatAskParams {
     sessionId?: string;
 }
 
-function pickMockResponse(query: string): string {
-    return mockDb.pickMockAnswer(query);
-}
-
 export const chatApi = {
-    ask: async (params: ChatAskParams) => {
-        await delay(1000);
-        const answer = pickMockResponse(params.userQuery);
-        return wrap({
+    ask: async ({ userQuery, organizationId, sessionId }: ChatAskParams) => {
+        await delay(400);
+        void organizationId;
+        const answer = mockDb.pickMockAnswer(userQuery);
+        return wrap<ChatAskResponse>({
             answer,
             sources: [
-                { document_id: "doc-001", chunk_index: 3, score: 0.92 },
-                { document_id: "doc-002", chunk_index: 1, score: 0.85 },
+                {
+                    document_id: "doc-001",
+                    chunk_index: 0,
+                    score: 0.83,
+                },
             ],
-            session_id: params.sessionId || null,
+            session_id: sessionId ?? mockDb.ensureWebSession().id,
         });
     },
 
@@ -85,174 +97,219 @@ export const chatApi = {
         onToken: (token: string) => void,
         onSources: (sources: Array<{ document_id: string; chunk_index: number; score: number }>) => void,
         onDone: () => void,
-        _onError: (error: string) => void,
+        onError: (error: string) => void,
     ): AbortController => {
         const controller = new AbortController();
-        const response = pickMockResponse(params.userQuery);
 
-        const sid = params.sessionId || "mock-session";
-
-        const userMsg: ChatMessage = {
-            id: crypto.randomUUID(),
-            session_id: sid,
-            organization_id: params.organizationId,
-            role: "user",
-            content: params.userQuery,
-            metadata: {},
-            created_at: new Date().toISOString(),
-        };
-        mockDb.appendMessage(sid, userMsg);
-
-        mockDb.ensureSession({
-            id: sid,
-            organization_id: params.organizationId,
-            bot_id: params.botId,
-            platform_user_id: params.platformUserId,
-            platform_source: params.platformSource || "web",
-            status: "active",
-            started_at: new Date().toISOString(),
-            last_message_at: new Date().toISOString(),
-        });
-
-        // Simulate streaming — character by character with delay
         (async () => {
-            // Initial "thinking" delay
-            await delay(800);
-
-            const chars = response.split("");
-            let i = 0;
-            const chunkSize = 3; // Send 3 characters at a time for speed
-
-            while (i < chars.length) {
+            try {
+                await delay(200);
                 if (controller.signal.aborted) return;
-                const chunk = chars.slice(i, i + chunkSize).join("");
-                onToken(chunk);
-                i += chunkSize;
-                await delay(20); // 20ms per chunk for realistic typing
+
+                onSources([
+                    {
+                        document_id: "doc-001",
+                        chunk_index: 0,
+                        score: 0.83,
+                    },
+                ]);
+
+                const full = mockDb.pickMockAnswer(params.userQuery);
+                const tokens = full.split(/\s+/);
+                for (const t of tokens) {
+                    if (controller.signal.aborted) return;
+                    onToken(t + " ");
+                    await delay(40);
+                }
+
+                onDone();
+            } catch (e) {
+                console.error(e);
+                onError("เกิดข้อผิดพลาด (Prototype)");
             }
-
-            // Send sources after text
-            onSources([
-                { document_id: "doc-001", chunk_index: 3, score: 0.92 },
-                { document_id: "doc-002", chunk_index: 1, score: 0.85 },
-            ]);
-
-            // Store assistant message
-            const assistantMsg: ChatMessage = {
-                id: crypto.randomUUID(),
-                session_id: sid,
-                organization_id: params.organizationId,
-                role: "assistant",
-                content: response,
-                metadata: {},
-                created_at: new Date().toISOString(),
-            };
-            mockDb.appendMessage(sid, assistantMsg);
-
-            onDone();
         })();
 
         return controller;
     },
 
-    requestHuman: async (_sessionId: string, _organizationId: string, _botId: string) => {
-        await delay(300);
-        return wrap(mockDb.updateSessionStatus(_sessionId, "active"));
+    requestHuman: async (sessionId: string, organizationId: string, botId: string) => {
+        await delay(200);
+        void organizationId;
+        void botId;
+        mockDb.requestHumanTakeover(sessionId);
+        return wrap({ ok: true } as any);
     },
 
-    sendMessage: async (_sessionId: string, _organizationId: string, content: string) => {
-        await delay(200);
-        const msg: ChatMessage = {
-            id: crypto.randomUUID(),
-            session_id: _sessionId,
-            organization_id: _organizationId,
-            role: "user",
-            content,
-            metadata: {},
-            created_at: new Date().toISOString(),
-        };
-        return wrap(mockDb.appendMessage(_sessionId, msg));
+    sendMessage: async (sessionId: string, organizationId: string, content: string) => {
+        await delay(150);
+        mockDb.appendUserMessage(sessionId, organizationId, content);
+        return wrap({ ok: true } as any);
     },
 };
 
 // ── Bots ────────────────────────────────────────────────────────
 
 export const botsApi = {
-    create: async (data: {
-        name: string;
-        organization_id: string;
-        description?: string;
-        system_prompt?: string;
-        is_web_enabled?: boolean;
-    }) => {
-        await delay(400);
-        return wrap(mockDb.createBot(data));
+    create: async (data: { name: string; organization_id: string; description?: string; system_prompt?: string; is_web_enabled?: boolean }) => {
+        await delay(250);
+        return wrap<Bot>(mockDb.createBot(data));
     },
 
-    list: async (_organizationId: string) => {
-        await delay(300);
-        return wrap(mockDb.listBots(_organizationId));
+    list: async (organizationId: string) => {
+        await delay(200);
+        return wrap(mockDb.listBots(organizationId));
     },
 
-    get: async (botId: string, _organizationId: string) => {
-        await delay(100);
-        const bot = mockDb.getBot(botId);
-        const botsList = mockDb.listBots(_organizationId);
-        return wrap(bot || botsList[0]);
+    get: async (botId: string, organizationId: string) => {
+        await delay(150);
+        void organizationId;
+        return wrap(mockDb.getBot(botId));
     },
 
-    update: async (botId: string, _organizationId: string, data: Partial<Bot>) => {
-        await delay(300);
-        const updated = mockDb.updateBot(botId, data);
-        const botsList = mockDb.listBots(_organizationId);
-        return wrap(updated || botsList[0]);
+    update: async (botId: string, organizationId: string, data: Partial<Bot>) => {
+        await delay(200);
+        void organizationId;
+        return wrap(mockDb.updateBot(botId, data));
     },
 
-    delete: async (botId: string, _organizationId: string) => {
-        await delay(300);
-        return wrap(mockDb.deleteBot(botId));
+    delete: async (botId: string, organizationId: string) => {
+        await delay(150);
+        void organizationId;
+        mockDb.deleteBot(botId);
+        return wrap({ ok: true } as any);
     },
 };
 
 // ── Inbox ───────────────────────────────────────────────────────
 
 export const inboxApi = {
-    listSessions: async (_organizationId: string) => {
-        await delay(200);
-        return wrap(mockDb.listSessions(_organizationId));
+    listSessions: async (organizationId: string) => {
+        await delay(250);
+        return wrap(mockDb.listSessions(organizationId));
     },
 
-    getMessages: async (sessionId: string, _organizationId: string) => {
+    getMessages: async (sessionId: string, organizationId: string) => {
         await delay(200);
+        void organizationId;
         return wrap(mockDb.getMessages(sessionId));
     },
 
-    updateStatus: async (sessionId: string, _organizationId: string, status: string) => {
-        await delay(200);
-        return wrap(mockDb.updateSessionStatus(sessionId, status as any));
+    updateStatus: async (sessionId: string, organizationId: string, status: string) => {
+        await delay(150);
+        void organizationId;
+        mockDb.updateSessionStatus(sessionId, status as ChatSession["status"]);
+        return wrap({ ok: true } as any);
     },
 
     sendMessage: async (sessionId: string, organizationId: string, content: string) => {
-        await delay(200);
-        const msg: ChatMessage = {
-            id: crypto.randomUUID(),
-            session_id: sessionId,
-            organization_id: organizationId,
-            role: "admin",
-            content,
-            metadata: {},
-            created_at: new Date().toISOString(),
-        };
-        return wrap(mockDb.appendMessage(sessionId, msg));
+        await delay(150);
+        mockDb.appendAgentMessage(sessionId, organizationId, content);
+        return wrap({ ok: true } as any);
     },
 
-    getNewMessages: async (sessionId: string, _organizationId: string, after: string) => {
-        await delay(100);
+    getNewMessages: async (sessionId: string, organizationId: string, after: string) => {
+        await delay(150);
+        void organizationId;
         return wrap(mockDb.getNewMessages(sessionId, after));
     },
 
-    mySessions: async (_organizationId: string) => {
+    mySessions: async (organizationId: string) => {
         await delay(200);
-        return wrap(mockDb.mySessions(_organizationId));
+        return wrap(mockDb.mySessions(organizationId));
+    },
+};
+
+// ── Admin (User Approval) ───────────────────────────────────────
+
+export const adminApi = {
+    listPending: async () => {
+        await delay(200);
+        return wrap<PendingUser[]>(mockDb.listPendingForAdminApi());
+    },
+
+    approve: async (userId: string) => {
+        await delay(200);
+        mockDb.approveUser(userId);
+        return wrap({ message: "approved", user_id: userId });
+    },
+
+    reject: async (userId: string) => {
+        await delay(200);
+        mockDb.rejectUser(userId);
+        return wrap({ message: "rejected", user_id: userId });
+    },
+};
+
+// ── Organizations (Multi-tenant) ────────────────────────────────
+
+export const orgApi = {
+    create: async (name: string) => {
+        await delay(250);
+        const org = mockDb.createOrg(name);
+        return wrap({ id: org.id, name: org.name, slug: org.slug ?? org.id });
+    },
+
+    list: async () => {
+        await delay(200);
+        return wrap<OrgMembership[]>(mockDb.listOrgs());
+    },
+
+    get: async (orgId: string) => {
+        await delay(150);
+        const org = mockDb.getOrgDetails(orgId);
+        return wrap(org as any);
+    },
+
+    update: async (orgId: string, name: string) => {
+        await delay(200);
+        mockDb.updateOrg(orgId, name);
+        return wrap({ ok: true } as any);
+    },
+
+    requestDeletion: async (_orgId: string) => {
+        await delay(250);
+        return wrap({ ok: true } as any);
+    },
+
+    confirmDeletion: async (_orgId: string) => {
+        await delay(250);
+        return wrap({ ok: true } as any);
+    },
+
+    listMembers: async (orgId: string) => {
+        await delay(200);
+        return wrap<OrgMember[]>(mockDb.listMembers(orgId));
+    },
+
+    invite: async (orgId: string, email: string) => {
+        await delay(250);
+        return wrap<OrgInvitation>(mockDb.invite(orgId, email));
+    },
+
+    removeMember: async (orgId: string, userId: string) => {
+        await delay(200);
+        mockDb.removeMember(orgId, userId);
+        return wrap({ ok: true } as any);
+    },
+
+    myInvitations: async () => {
+        await delay(200);
+        return wrap<MyInvitation[]>(mockDb.myInvitations() as any);
+    },
+
+    acceptInvitation: async (invitationId: string) => {
+        await delay(200);
+        mockDb.acceptInvitation(invitationId);
+        return wrap({ ok: true } as any);
+    },
+
+    declineInvitation: async (_invitationId: string) => {
+        await delay(200);
+        return wrap({ ok: true } as any);
+    },
+
+    leave: async (_orgId: string) => {
+        await delay(200);
+        return wrap({ ok: true } as any);
     },
 };

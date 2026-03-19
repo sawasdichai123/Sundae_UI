@@ -9,7 +9,6 @@
 import { useState, type FormEvent } from "react";
 import { Navigate, Link, useSearchParams } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
-import { supabase } from "../api/supabaseClient";
 import Spinner from "../components/Spinner";
 
 type Tab = "login" | "register";
@@ -52,30 +51,9 @@ export default function LoginPage() {
         setRegisterMsg("");
         clearError();
 
-        // 1. Create auth user
-        const { error } = await supabase.auth.signUp({
-            email: email.trim(),
-            password: password.trim(),
-            options: {
-                data: { full_name: fullName.trim() || null },
-            },
-        });
-
-        if (error) {
-            const msg = error.message.includes("already registered") || error.message.includes("User already registered")
-                ? "อีเมลนี้มีผู้ใช้งานแล้ว กรุณาใช้อีเมลอื่น"
-                : error.message.includes("Password should be")
-                    ? "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร"
-                    : `❌ ${error.message}`;
-            setRegisterMsg(msg);
-            setRegisterLoading(false);
-            return;
-        }
-
-        // user_profiles row ถูกสร้างอัตโนมัติโดย DB trigger (handle_new_auth_user)
-        // ไม่ต้อง insert ตรงนี้ — trigger ใช้ SECURITY DEFINER bypass RLS ได้
-
-        setRegisterMsg("✅ สมัครสำเร็จ! กรุณาเข้าสู่ระบบด้านล่าง (รอ Admin อนุมัติก่อนใช้งาน)");
+        await new Promise((r) => setTimeout(r, 700));
+        void fullName;
+        setRegisterMsg("✅ สมัครสำเร็จ! (Prototype Mode) กรุณาเข้าสู่ระบบด้านล่าง");
         setRegisterLoading(false);
         setPassword("");
         // Auto-switch to login tab after 1.5s
@@ -231,13 +209,13 @@ export default function LoginPage() {
                         )}
                     </button>
                     <p className="text-[10px] text-steel-400 text-center">
-                        สมัครแล้วต้องรอ Admin อนุมัติก่อนจึงจะใช้ฟีเจอร์ทั้งหมดได้
+                        สมัครแล้วต้องรอ Support อนุมัติก่อนจึงจะใช้ฟีเจอร์ทั้งหมดได้
                     </p>
                 </form>
             )}
 
             <p className="text-[10px] text-steel-400 text-center mt-6">
-                © 2025 SUNDAE · Powered by Supabase Auth
+                © 2026 SUNDAE · Powered by Supabase Auth
             </p>
         </div>
     );

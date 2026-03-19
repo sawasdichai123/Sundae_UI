@@ -1,180 +1,144 @@
 /**
- * SUNDAE Frontend — Auth Store (Mock for Prototype)
+ * SUNDAE Frontend — Auth Store (Zustand + Supabase)
  *
- * Uses mock data instead of real Supabase authentication.
- * All role-based selectors and navigation logic remain unchanged.
+ * Manages real Supabase auth session lifecycle:
+ *   - signIn / signOut via Supabase
+ *   - onAuthStateChange listener (called from AuthProvider)
+ *   - Fetches user_profiles row for role & is_approved
+ *   - Triggers orgStore.fetchOrgs() after profile load
  */
 
 import { create } from "zustand";
-import type { UserProfile, Organization } from "../types";
-import { MOCK_ORG } from "../mocks/mockData";
 import { mockDb } from "../api/mockDb";
+import { useOrgStore } from "./orgStore";
+import type { UserProfile, Organization, UserRole } from "../types";
 
-const PROTO_USER_KEY = "sundae_proto_user";
-const PROTO_ORG_KEY = "sundae_proto_org";
+type ProtoSession = {
+    user: {
+        id: string;
+        email: string;
+    };
+};
+
+const STORAGE_KEYS = {
+    user: "sundae_proto_user",
+    org: "sundae_proto_org",
+    session: "sundae_proto_session",
+} as const;
 
 interface AuthState {
+    // State
     user: UserProfile | null;
     organization: Organization | null;
+    session: ProtoSession | null;
     isAuthenticated: boolean;
-    isLoading: boolean;
+    isLoading: boolean;       // true while checking initial session
     authError: string | null;
 
+    // Actions
     signIn: (email: string, password: string) => Promise<void>;
     signOut: () => Promise<void>;
+    setSession: (session: ProtoSession | null) => void;
     fetchProfile: (userId: string) => Promise<void>;
-    setSession: (session: any) => void;
-    setLoading: (loading: boolean) => void;
+    setLoading: (v: boolean) => void;
     clearError: () => void;
 }
 
-export function initPrototypeAuthFromStorage() {
-    try {
-        const rawUser = localStorage.getItem(PROTO_USER_KEY);
-        const rawOrg = localStorage.getItem(PROTO_ORG_KEY);
-        if (!rawUser || !rawOrg) return;
-
-        const user = JSON.parse(rawUser) as UserProfile;
-        const organization = JSON.parse(rawOrg) as Organization;
-
-        useAuthStore.setState({
-            user,
-            organization,
-            isAuthenticated: true,
-            isLoading: false,
-            authError: null,
-        });
-    } catch {
-        // Ignore corrupted storage
-    }
-}
-
 export const useAuthStore = create<AuthState>((set) => ({
-    // ── Initial State ─────────────────────────────────────────────
     user: null,
     organization: null,
+    session: null,
     isAuthenticated: false,
-    isLoading: false,
+    isLoading: true,  // starts true until initial check
     authError: null,
 
-    // ── Actions ───────────────────────────────────────────────────
-
-    signIn: async (_email: string, _password: string) => {
-        set({ isLoading: true, authError: null });
-
-        // Simulate tiny delay
-        await new Promise((r) => setTimeout(r, 300));
-
-        const email = (_email || "").trim().toLowerCase();
-
-        const approved = mockDb
-            .listApprovedUsers()
-            .find((u) => (u.email || "").trim().toLowerCase() === email);
-        const pending = mockDb
-            .listPendingUsers()
-            .find((u) => (u.email || "").trim().toLowerCase() === email);
-
-        const user: UserProfile = approved || pending || {
-            id: `user-${Date.now()}`,
-            organization_id: MOCK_ORG.id,
-            email: email || "guest@sundae.demo",
-            full_name: email ? email.split("@")[0] : "Guest",
-            role: "user",
-            is_approved: true,
-            created_at: new Date().toISOString(),
-        };
-
-        const organization = { ...MOCK_ORG };
-
+    // ── Sign In (Prototype) ─────────────────────────────────────
+    signIn: async (email, _password) => {
+        set({ authError: null, isLoading: true, user: null, organization: null });
         try {
-            localStorage.setItem(PROTO_USER_KEY, JSON.stringify(user));
-            localStorage.setItem(PROTO_ORG_KEY, JSON.stringify(organization));
-        } catch {
-            // ignore
-        }
+            const found = mockDb.findUserByEmail(email);
+            if (!found) {
+                set({ authError: "อีเมลหรือรหัสผ่านไม่ถูกต้อง" });
+                return;
+            }
 
-        set({ user, organization, isAuthenticated: true, isLoading: false, authError: null });
+            const org = mockDb.getPrimaryOrg();
+            const session: ProtoSession = { user: { id: found.id, email: found.email } };
+
+            set({ session, isAuthenticated: true, user: found, organization: org });
+            try {
+                localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(found));
+                localStorage.setItem(STORAGE_KEYS.org, JSON.stringify(org));
+                localStorage.setItem(STORAGE_KEYS.session, JSON.stringify(session));
+            } catch {
+                // ignore
+            }
+
+            if (found.is_approved) {
+                useOrgStore.getState().fetchOrgs();
+            }
+        } finally {
+            set({ isLoading: false });
+        }
     },
 
+    // ── Sign Out (Prototype) ────────────────────────────────────
     signOut: async () => {
-        try {
-            localStorage.removeItem(PROTO_USER_KEY);
-            localStorage.removeItem(PROTO_ORG_KEY);
-        } catch {
-            // ignore
-        }
+        // Clear local state FIRST — never block the user waiting for the API.
         set({
             user: null,
             organization: null,
+            session: null,
             isAuthenticated: false,
-            isLoading: false,
             authError: null,
         });
-    },
-
-    fetchProfile: async (_userId: string) => {
-        set({ isLoading: true });
-
-        // Simulate tiny delay
-        await new Promise((r) => setTimeout(r, 200));
-
+        // Clear org store
+        useOrgStore.getState().clearOrgs();
         try {
-            const rawUser = localStorage.getItem(PROTO_USER_KEY);
-            const rawOrg = localStorage.getItem(PROTO_ORG_KEY);
-            if (rawUser && rawOrg) {
-                set({
-                    user: JSON.parse(rawUser) as UserProfile,
-                    organization: JSON.parse(rawOrg) as Organization,
-                    isAuthenticated: true,
-                    isLoading: false,
-                });
-                return;
-            }
+            localStorage.removeItem(STORAGE_KEYS.user);
+            localStorage.removeItem(STORAGE_KEYS.org);
+            localStorage.removeItem(STORAGE_KEYS.session);
         } catch {
             // ignore
         }
-
-        set({
-            user: null,
-            organization: null,
-            isAuthenticated: false,
-            isLoading: false,
-        });
     },
 
-    setSession: (_session: any) => {
-        try {
-            const rawUser = localStorage.getItem(PROTO_USER_KEY);
-            const rawOrg = localStorage.getItem(PROTO_ORG_KEY);
-            if (rawUser && rawOrg) {
-                set({
-                    user: JSON.parse(rawUser) as UserProfile,
-                    organization: JSON.parse(rawOrg) as Organization,
-                    isAuthenticated: true,
-                    isLoading: false,
-                });
-                return;
-            }
-        } catch {
-            // ignore
+    // ── Set Session (from onAuthStateChange) ────────────────────
+    setSession: (session) => {
+        if (session) {
+            set({ session, isAuthenticated: true });
+        } else {
+            set({
+                session: null,
+                isAuthenticated: false,
+                user: null,
+                organization: null,
+            });
         }
-
-        set({
-            user: null,
-            organization: null,
-            isAuthenticated: false,
-            isLoading: false,
-        });
     },
 
-    setLoading: (loading: boolean) => set({ isLoading: loading }),
+    // ── Fetch Profile (Prototype) ───────────────────────────────
+    fetchProfile: async (userId: string) => {
+        const profile = mockDb.getUserById(userId);
+        if (!profile) {
+            set({ authError: "ไม่พบโปรไฟล์ผู้ใช้ (Prototype)", isLoading: false });
+            return;
+        }
+        const org = mockDb.getPrimaryOrg();
+        set({ user: profile, organization: org });
 
+        if (profile.is_approved) {
+            useOrgStore.getState().fetchOrgs();
+        }
+    },
+
+    setLoading: (v) => set({ isLoading: v }),
     clearError: () => set({ authError: null }),
 }));
 
-// ── Selectors ─────────────────────────────────────────────────
+// ── Role Selectors ──────────────────────────────────────────────
 
-export const selectRole = (state: AuthState): UserProfile["role"] =>
+export const selectRole = (state: AuthState): UserRole =>
     state.user?.role ?? "user";
 
 export const selectIsApproved = (state: AuthState): boolean =>
@@ -186,7 +150,7 @@ export const selectCanManageContent = (state: AuthState): boolean => {
 };
 
 export const selectIsSupport = (state: AuthState): boolean =>
-    state.user?.role === "support" || state.user?.role === "admin";
+    state.user?.role === "support";
 
 export const selectIsAdmin = (state: AuthState): boolean =>
     state.user?.role === "admin";

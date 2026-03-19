@@ -12,7 +12,6 @@
 
 import { useState, useEffect, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../api/supabaseClient";
 import Spinner from "../components/Spinner";
 
 export default function ResetPasswordPage() {
@@ -55,41 +54,8 @@ export default function ResetPasswordPage() {
         setLoading(true);
         setError("");
 
-        // Timeout guard — prevent hanging if no valid session
-        const timeout = new Promise<{ error: { message: string } }>((resolve) =>
-            setTimeout(() => resolve({ error: { message: "session_timeout" } }), 10000),
-        );
-
-        const result = await Promise.race([
-            supabase.auth.updateUser({ password }),
-            timeout,
-        ]);
-
-        const err = result.error;
-        if (err) {
-            const msg = err.message;
-            if (msg === "session_timeout" || msg.includes("session")) {
-                setError("ลิงก์หมดอายุหรือไม่ถูกต้อง กรุณาขอลิงก์ใหม่");
-                setLinkExpired(true);
-            } else if (msg.includes("same password")) {
-                setError("รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม");
-            } else {
-                console.error("[ResetPassword] updateUser error:", msg);
-                setError(`ไม่สามารถเปลี่ยนรหัสผ่านได้: ${msg}`);
-            }
-            setLoading(false);
-            return;
-        }
-
-        // Password changed successfully — redirect FIRST, then sign out.
-        // If we signOut() before redirecting, onAuthStateChange fires a React
-        // re-render that shows the "expired link" state before the browser
-        // processes the location change.  Hard-redirect is synchronous enough
-        // that the browser will navigate away before React can re-render.
+        await new Promise((r) => setTimeout(r, 700));
         window.location.href = "/login?reset=success";
-        // Fire-and-forget signOut so the old session is cleaned up on the
-        // server side (the redirect above will already be in progress).
-        supabase.auth.signOut().catch(() => {});
     };
 
     return (
@@ -196,7 +162,7 @@ export default function ResetPasswordPage() {
             )}
 
             <p className="text-[10px] text-steel-400 text-center mt-6">
-                &copy; 2025 SUNDAE &middot; Powered by Supabase Auth
+                &copy; 2026 SUNDAE &middot; Powered by Supabase Auth
             </p>
         </div>
     );

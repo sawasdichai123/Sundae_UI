@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900">
+  <defs>
+    <filter id="cardShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="20" flood-color="#000" flood-opacity="0.2"/>
+    </filter>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#242527"/>
+      <stop offset="50%" stop-color="#333436"/>
+      <stop offset="100%" stop-color="#434547"/>
+    </linearGradient>
+    <filter id="blur1" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="60"/>
+    </filter>
+  </defs>
+
+  <rect width="1440" height="900" fill="url(#bgGrad)"/>
+  <circle cx="1080" cy="225" r="192" fill="#ffd100" fill-opacity="0.08" filter="url(#blur1)"/>
+  <circle cx="360" cy="675" r="192" fill="#6a6b6e" fill-opacity="0.1" filter="url(#blur1)"/>
+
+  <!-- Card -->
+  <rect x="420" y="180" width="600" height="440" rx="24" fill="#fff" filter="url(#cardShadow)"/>
+
+  <!-- Brand Header -->
+  <rect x="452" y="212" width="40" height="40" rx="12" fill="#ffd100"/>
+  <text x="472" y="239" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#242527" text-anchor="middle">S</text>
+  <text x="504" y="228" font-family="Inter, Noto Sans Thai, sans-serif" font-size="18" font-weight="700" fill="#242527">รอคำเชิญ</text>
+  <text x="504" y="245" font-family="Inter, sans-serif" font-size="12" fill="#7e7f82">SUNDAE Admin Dashboard</text>
+
+  <!-- User info -->
+  <rect x="452" y="268" width="536" height="56" rx="12" fill="#f6f6f7"/>
+  <circle cx="480" cy="296" r="16" fill="#fff9cc"/>
+  <text x="480" y="301" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#997d00" text-anchor="middle">ป</text>
+  <text x="504" y="290" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" font-weight="500" fill="#333436">ปิยะ วิชัยดิษฐ</text>
+  <text x="504" y="308" font-family="Inter, sans-serif" font-size="12" fill="#7e7f82">approved@sundae.local</text>
+
+  <!-- Empty invitations -->
+  <text x="452" y="360" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" font-weight="700" fill="#333436">คำเชิญที่ได้รับ</text>
+
+  <rect x="452" y="376" width="536" height="80" rx="12" fill="#f6f6f7" stroke="#e8e8ea" stroke-width="1"/>
+  <text x="720" y="412" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" fill="#7e7f82" text-anchor="middle">ไม่มีคำเชิญที่รอดำเนินการ</text>
+  <text x="720" y="434" font-family="Inter, Noto Sans Thai, sans-serif" font-size="12" fill="#a9aaad" text-anchor="middle">กรุณาติดต่อ Admin เพื่อรับคำเชิญเข้าร่วมองค์กร</text>
+
+  <!-- Info Box -->
+  <rect x="452" y="478" width="536" height="56" rx="12" fill="#fffbeb" stroke="#fde68a" stroke-width="1"/>
+  <text x="720" y="504" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" fill="#b45309" text-anchor="middle">คุณยังไม่ได้เป็นสมาชิกขององค์กรใด</text>
+  <text x="720" y="522" font-family="Inter, Noto Sans Thai, sans-serif" font-size="12" fill="#d97706" text-anchor="middle">กรุณาติดต่อ Admin หรือ Support</text>
+
+  <!-- Logout button -->
+  <rect x="620" y="556" width="200" height="44" rx="12" fill="#e8e8ea"/>
+  <text x="720" y="583" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" font-weight="700" fill="#545659" text-anchor="middle">ออกจากระบบ</text>
+
+  <!-- Footer -->
+  <text x="720" y="640" font-family="Inter, sans-serif" font-size="10" fill="#7e7f82" text-anchor="middle">© 2026 SUNDAE · Powered by Supabase Auth</text>
+
+  <text x="720" y="730" font-family="Inter, sans-serif" font-size="11" fill="#7e7f82" text-anchor="middle">© 2026 SUNDAE · Enterprise AI Platform</text>
+</svg>

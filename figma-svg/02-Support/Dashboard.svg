@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900">
+  <defs>
+    <clipPath id="mainClip"><rect x="256" y="64" width="1184" height="836"/></clipPath>
+  </defs>
+
+  <!-- ============ SIDEBAR (Support: Approvals, Web Chat, Organization, Profile) ============ -->
+  <rect width="256" height="900" fill="#242527"/>
+  <rect x="20" y="16" width="32" height="32" rx="8" fill="#ffd100"/>
+  <text x="36" y="38" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#242527" text-anchor="middle">S</text>
+  <text x="64" y="30" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#fff">SUNDAE</text>
+  <text x="64" y="44" font-family="Inter, sans-serif" font-size="10" fill="#7e7f82">Enterprise AI</text>
+  <line x1="0" y1="64" x2="256" y2="64" stroke="#fff" stroke-opacity="0.08"/>
+  <rect x="12" y="76" width="232" height="40" rx="10" fill="#333436"/>
+  <text x="24" y="101" font-family="Inter, Noto Sans Thai, sans-serif" font-size="12" font-weight="500" fill="#d1d1d4">NT Corporation</text>
+
+  <!-- Nav: Approvals -->
+  <svg x="24" y="142" width="20" height="20" viewBox="0 0 20 20" fill="#a9aaad"><path d="M10 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM3.465 14.493a1.23 1.23 0 0 0 .41 1.412A9.957 9.957 0 0 0 10 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 0 0-13.074.003Z"/></svg>
+  <text x="52" y="157" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#a9aaad">Approvals</text>
+
+  <!-- Nav: Web Chat -->
+  <svg x="24" y="182" width="20" height="20" viewBox="0 0 20 20" fill="#a9aaad"><path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0ZM8.94 6.94a.75.75 0 1 1-1.061-1.061 3 3 0 1 1 2.871 5.026v.345a.75.75 0 0 1-1.5 0v-.916c0-.414.336-.75.75-.75a1.5 1.5 0 0 0 .94-2.644Zm-.25 5.81a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Z" clip-rule="evenodd"/></svg>
+  <text x="52" y="197" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#a9aaad">Web Chat</text>
+
+  <!-- Nav: Organization -->
+  <svg x="24" y="222" width="20" height="20" viewBox="0 0 20 20" fill="#a9aaad"><path d="M11 5a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM2.046 15.253c-.058.468.172.92.57 1.175A9.953 9.953 0 0 0 8 18c1.982 0 3.83-.578 5.384-1.573.398-.254.628-.707.57-1.175a6.001 6.001 0 0 0-11.908 0ZM15.75 8.5a.75.75 0 0 0-1.5 0v2h-2a.75.75 0 0 0 0 1.5h2v2a.75.75 0 0 0 1.5 0v-2h2a.75.75 0 0 0 0-1.5h-2v-2Z"/></svg>
+  <text x="52" y="237" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#a9aaad">Organization</text>
+
+  <!-- Nav: Profile -->
+  <svg x="24" y="262" width="20" height="20" viewBox="0 0 20 20" fill="#a9aaad"><path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-5.5-2.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0ZM10 12a5.99 5.99 0 0 0-4.793 2.39A6.483 6.483 0 0 0 10 16.5a6.483 6.483 0 0 0 4.793-2.11A5.99 5.99 0 0 0 10 12Z" clip-rule="evenodd"/></svg>
+  <text x="52" y="277" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#a9aaad">Profile</text>
+
+  <!-- User Card — Support role (violet badge) -->
+  <line x1="0" y1="850" x2="256" y2="850" stroke="#fff" stroke-opacity="0.08"/>
+  <circle cx="32" cy="874" r="16" fill="#ffd100"/>
+  <text x="32" y="879" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#242527" text-anchor="middle">พ</text>
+  <text x="56" y="868" font-family="Inter, Noto Sans Thai, sans-serif" font-size="12" font-weight="500" fill="#fff">พิมพ์ใจ ศรีสุข</text>
+  <rect x="152" y="858" width="56" height="18" rx="9" fill="#ede9fe"/>
+  <text x="180" y="871" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#7c3aed" text-anchor="middle">Support</text>
+  <text x="56" y="884" font-family="Inter, sans-serif" font-size="10" fill="#7e7f82">support@sundae.local</text>
+
+  <!-- ============ HEADER ============ -->
+  <rect x="256" y="0" width="1184" height="64" fill="#fff" fill-opacity="0.9"/>
+  <line x1="256" y1="64" x2="1440" y2="64" stroke="#e8e8ea"/>
+  <text x="288" y="37" font-family="Inter, sans-serif" font-size="14" fill="#7e7f82">SUNDAE</text>
+  <text x="340" y="37" font-family="Inter, sans-serif" font-size="14" fill="#d1d1d4">›</text>
+  <text x="356" y="37" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#333436">Dashboard</text>
+  <rect x="1340" y="22" width="72" height="28" rx="14" fill="#ecfdf5"/>
+  <circle cx="1356" cy="36" r="3" fill="#10b981"/>
+  <text x="1366" y="41" font-family="Inter, sans-serif" font-size="12" font-weight="500" fill="#047857">Online</text>
+
+  <!-- ============ MAIN CONTENT ============ -->
+  <g clip-path="url(#mainClip)">
+    <rect x="256" y="64" width="1184" height="836" fill="#f6f6f7"/>
+
+    <text x="288" y="108" font-family="Inter, Noto Sans Thai, sans-serif" font-size="24" font-weight="700" fill="#242527">NT Corporation</text>
+    <text x="288" y="130" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" fill="#6a6b6e">ภาพรวมระบบ — โหมดเจ้าหน้าที่ Support</text>
+
+    <!-- ======== Metric Cards (4 cards — Support variant) ======== -->
+    <!-- Card 1: เอกสารทั้งหมด -->
+    <rect x="288" y="152" width="265" height="130" rx="16" fill="#fff" stroke="#e8e8ea" stroke-width="1"/>
+    <rect x="304" y="168" width="44" height="44" rx="12" fill="#fff9cc"/>
+    <text x="326" y="196" font-family="Inter, sans-serif" font-size="20" fill="#c29e00" text-anchor="middle">📄</text>
+    <rect x="490" y="170" width="48" height="22" rx="11" fill="#e8e8ea"/>
+    <text x="514" y="185" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#6a6b6e" text-anchor="middle">live</text>
+    <text x="304" y="248" font-family="Inter, sans-serif" font-size="30" font-weight="700" fill="#242527">6</text>
+    <text x="304" y="268" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" fill="#6a6b6e">เอกสารทั้งหมด</text>
+
+    <!-- Card 2: Bot ที่ใช้งาน -->
+    <rect x="565" y="152" width="265" height="130" rx="16" fill="#fff" stroke="#e8e8ea" stroke-width="1"/>
+    <rect x="581" y="168" width="44" height="44" rx="12" fill="#e8e8ea"/>
+    <text x="603" y="196" font-family="Inter, sans-serif" font-size="20" fill="#545659" text-anchor="middle">🤖</text>
+    <rect x="767" y="170" width="48" height="22" rx="11" fill="#e8e8ea"/>
+    <text x="791" y="185" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#6a6b6e" text-anchor="middle">live</text>
+    <text x="581" y="248" font-family="Inter, sans-serif" font-size="30" font-weight="700" fill="#242527">3</text>
+    <text x="581" y="268" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" fill="#6a6b6e">Bot ที่ใช้งาน</text>
+
+    <!-- Card 3: ผู้ใช้รออนุมัติ (SUPPORT VARIANT — amber card) -->
+    <rect x="842" y="152" width="265" height="130" rx="16" fill="#fff" stroke="#e8e8ea" stroke-width="1"/>
+    <rect x="858" y="168" width="44" height="44" rx="12" fill="#fffbeb"/>
+    <text x="880" y="196" font-family="Inter, sans-serif" font-size="20" fill="#d97706" text-anchor="middle">👤</text>
+    <rect x="1044" y="170" width="48" height="22" rx="11" fill="#e8e8ea"/>
+    <text x="1068" y="185" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#6a6b6e" text-anchor="middle">live</text>
+    <text x="858" y="248" font-family="Inter, sans-serif" font-size="30" font-weight="700" fill="#242527">3</text>
+    <text x="858" y="268" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" fill="#6a6b6e">ผู้ใช้รออนุมัติ</text>
+
+    <!-- Card 4: แชทที่รอดูแล -->
+    <rect x="1119" y="152" width="265" height="130" rx="16" fill="#fff" stroke="#e8e8ea" stroke-width="1"/>
+    <rect x="1135" y="168" width="44" height="44" rx="12" fill="#fff7ed"/>
+    <text x="1157" y="196" font-family="Inter, sans-serif" font-size="20" fill="#ea580c" text-anchor="middle">⏰</text>
+    <rect x="1321" y="170" width="48" height="22" rx="11" fill="#e8e8ea"/>
+    <text x="1345" y="185" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#6a6b6e" text-anchor="middle">live</text>
+    <text x="1135" y="248" font-family="Inter, sans-serif" font-size="30" font-weight="700" fill="#242527">1</text>
+    <text x="1135" y="268" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" fill="#6a6b6e">แชทที่รอดูแล</text>
+
+    <!-- NO Quick Actions for Support -->
+
+    <!-- System Status -->
+    <rect x="288" y="304" width="1096" height="100" rx="16" fill="#fff" stroke="#e8e8ea" stroke-width="1"/>
+    <text x="312" y="336" font-family="Inter, Noto Sans Thai, sans-serif" font-size="16" font-weight="600" fill="#333436">สถานะระบบ</text>
+    <circle cx="320" cy="364" r="4" fill="#10b981"/>
+    <text x="332" y="369" font-family="Inter, sans-serif" font-size="14" fill="#545659">RAG Pipeline</text>
+    <circle cx="470" cy="364" r="4" fill="#ef4444"/>
+    <text x="482" y="369" font-family="Inter, sans-serif" font-size="14" fill="#545659">Ollama</text>
+    <circle cx="570" cy="364" r="4" fill="#10b981"/>
+    <text x="582" y="369" font-family="Inter, sans-serif" font-size="14" fill="#545659">Embedding</text>
+    <circle cx="690" cy="364" r="4" fill="#ef4444"/>
+    <text x="702" y="369" font-family="Inter, sans-serif" font-size="14" fill="#545659">Supabase DB</text>
+    <circle cx="830" cy="364" r="4" fill="#a9aaad" opacity="0.6"/>
+    <text x="842" y="369" font-family="Inter, sans-serif" font-size="14" fill="#545659">LINE Webhook</text>
+
+    <!-- Member Management (Support can manage) -->
+    <rect x="288" y="424" width="1096" height="280" rx="16" fill="#fff" stroke="#e8e8ea" stroke-width="1"/>
+    <text x="312" y="456" font-family="Inter, Noto Sans Thai, sans-serif" font-size="16" font-weight="600" fill="#333436">สมาชิกในองค์กร (4)</text>
+
+    <circle cx="320" cy="492" r="16" fill="#fff9cc"/>
+    <text x="320" y="497" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#997d00" text-anchor="middle">ณ</text>
+    <text x="346" y="487" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" font-weight="500" fill="#333436">ณัฐพล วงศ์สุวรรณ</text>
+    <text x="346" y="502" font-family="Inter, sans-serif" font-size="12" fill="#7e7f82">admin@sundae.local</text>
+    <rect x="1220" y="480" width="52" height="20" rx="10" fill="#fff9cc"/>
+    <text x="1246" y="494" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#997d00" text-anchor="middle">owner</text>
+
+    <line x1="312" y1="516" x2="1372" y2="516" stroke="#e8e8ea"/>
+    <circle cx="320" cy="540" r="16" fill="#fff9cc"/>
+    <text x="320" y="545" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#997d00" text-anchor="middle">ธ</text>
+    <text x="346" y="535" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" font-weight="500" fill="#333436">ธนกร เจริญธรรม</text>
+    <text x="346" y="550" font-family="Inter, sans-serif" font-size="12" fill="#7e7f82">owner@sundae.local</text>
+    <rect x="1220" y="528" width="52" height="20" rx="10" fill="#e8e8ea"/>
+    <text x="1246" y="542" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#6a6b6e" text-anchor="middle">member</text>
+    <text x="1302" y="542" font-family="Inter, Noto Sans Thai, sans-serif" font-size="12" fill="#ef4444">ลบ</text>
+
+    <!-- Invite Form -->
+    <line x1="312" y1="572" x2="1372" y2="572" stroke="#e8e8ea"/>
+    <text x="312" y="604" font-family="Inter, Noto Sans Thai, sans-serif" font-size="12" font-weight="500" fill="#545659">เชิญสมาชิก</text>
+    <rect x="312" y="614" width="880" height="40" rx="12" fill="#f6f6f7" stroke="#d1d1d4" stroke-width="1"/>
+    <text x="328" y="639" font-family="Inter, sans-serif" font-size="14" fill="#a9aaad">email@example.com</text>
+    <rect x="1204" y="614" width="100" height="40" rx="12" fill="#ffd100"/>
+    <text x="1254" y="640" font-family="Inter, Noto Sans Thai, sans-serif" font-size="12" font-weight="700" fill="#242527" text-anchor="middle">ส่งคำเชิญ</text>
+  </g>
+</svg>

@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900">
+  <defs>
+    <clipPath id="mainClip"><rect x="256" y="64" width="1184" height="836"/></clipPath>
+  </defs>
+
+  <!-- SIDEBAR (User Owner) -->
+  <rect width="256" height="900" fill="#242527"/>
+  <rect x="20" y="16" width="32" height="32" rx="8" fill="#ffd100"/>
+  <text x="36" y="38" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#242527" text-anchor="middle">S</text>
+  <text x="64" y="30" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#fff">SUNDAE</text>
+  <text x="64" y="44" font-family="Inter, sans-serif" font-size="10" fill="#7e7f82">Enterprise AI</text>
+  <line x1="0" y1="64" x2="256" y2="64" stroke="#fff" stroke-opacity="0.08"/>
+  <rect x="12" y="76" width="232" height="40" rx="10" fill="#333436"/>
+  <text x="24" y="101" font-family="Inter, Noto Sans Thai, sans-serif" font-size="12" font-weight="500" fill="#d1d1d4">NT Corporation</text>
+
+  <text x="52" y="157" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#a9aaad">Dashboard</text>
+  <text x="52" y="197" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#a9aaad">Knowledge Base</text>
+  <text x="52" y="237" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#a9aaad">Bots</text>
+  <text x="52" y="277" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#a9aaad">Inbox</text>
+  <text x="52" y="317" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#a9aaad">Integration</text>
+  <text x="52" y="357" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#a9aaad">Organization</text>
+  <rect x="12" y="372" width="232" height="40" rx="12" fill="rgba(255,209,0,0.2)"/>
+  <text x="52" y="397" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#ffd100">Web Chat</text>
+  <text x="52" y="437" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#a9aaad">Profile</text>
+
+  <line x1="0" y1="850" x2="256" y2="850" stroke="#fff" stroke-opacity="0.08"/>
+  <circle cx="32" cy="874" r="16" fill="#ffd100"/>
+  <text x="32" y="879" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#242527" text-anchor="middle">ธ</text>
+  <text x="56" y="868" font-family="Inter, Noto Sans Thai, sans-serif" font-size="12" font-weight="500" fill="#fff">ธนกร เจริญธรรม</text>
+  <rect x="160" y="858" width="48" height="18" rx="9" fill="#fff9cc"/>
+  <text x="184" y="871" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#997d00" text-anchor="middle">Owner</text>
+  <text x="56" y="884" font-family="Inter, sans-serif" font-size="10" fill="#7e7f82">owner@sundae.local</text>
+
+  <!-- HEADER -->
+  <rect x="256" y="0" width="1184" height="64" fill="#fff" fill-opacity="0.9"/>
+  <line x1="256" y1="64" x2="1440" y2="64" stroke="#e8e8ea"/>
+  <text x="288" y="37" font-family="Inter, sans-serif" font-size="14" fill="#7e7f82">SUNDAE</text>
+  <text x="340" y="37" font-family="Inter, sans-serif" font-size="14" fill="#d1d1d4">›</text>
+  <text x="356" y="37" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#333436">Web Chat</text>
+  <rect x="1340" y="22" width="72" height="28" rx="14" fill="#ecfdf5"/>
+  <circle cx="1356" cy="36" r="3" fill="#10b981"/>
+  <text x="1366" y="41" font-family="Inter, sans-serif" font-size="12" font-weight="500" fill="#047857">Online</text>
+
+  <!-- MAIN CONTENT -->
+  <g clip-path="url(#mainClip)">
+    <rect x="256" y="64" width="1184" height="836" fill="#f6f6f7"/>
+
+    <!-- Chat History Sidebar -->
+    <rect x="256" y="64" width="280" height="836" fill="#fff"/>
+    <line x1="536" y1="64" x2="536" y2="900" stroke="#e8e8ea"/>
+
+    <rect x="272" y="80" width="248" height="36" rx="10" fill="#f6f6f7" stroke="#d1d1d4" stroke-width="1"/>
+    <text x="288" y="103" font-family="Inter, sans-serif" font-size="13" fill="#333436">HR Assistant</text>
+    <text x="504" y="103" font-family="Inter, sans-serif" font-size="12" fill="#7e7f82">▾</text>
+
+    <rect x="272" y="126" width="248" height="36" rx="10" fill="#ffd100"/>
+    <text x="396" y="149" font-family="Inter, Noto Sans Thai, sans-serif" font-size="13" font-weight="700" fill="#242527" text-anchor="middle">+ สนทนาใหม่</text>
+
+    <text x="280" y="186" font-family="Inter, Noto Sans Thai, sans-serif" font-size="11" font-weight="600" fill="#7e7f82">ประวัติการสนทนา</text>
+
+    <rect x="272" y="196" width="248" height="56" rx="10" fill="#fffdf0"/>
+    <text x="284" y="216" font-family="Inter, Noto Sans Thai, sans-serif" font-size="12" font-weight="500" fill="#242527">สิทธิลาพักร้อน...</text>
+    <rect x="284" y="224" width="48" height="16" rx="8" fill="#ecfdf5"/>
+    <text x="308" y="235" font-family="Inter, sans-serif" font-size="9" font-weight="500" fill="#059669" text-anchor="middle">Active</text>
+
+    <!-- Chat Area -->
+    <rect x="536" y="64" width="904" height="56" fill="#fff"/>
+    <line x1="536" y1="120" x2="1440" y2="120" stroke="#e8e8ea"/>
+    <text x="560" y="92" font-family="Inter, sans-serif" font-size="16" font-weight="700" fill="#242527">HR Assistant</text>
+    <text x="560" y="110" font-family="Inter, sans-serif" font-size="12" fill="#6a6b6e">AI-powered HR knowledge assistant</text>
+
+    <rect x="1240" y="78" width="172" height="32" rx="16" fill="#fffbeb" stroke="#fde68a" stroke-width="1"/>
+    <text x="1326" y="99" font-family="Inter, Noto Sans Thai, sans-serif" font-size="12" font-weight="600" fill="#b45309" text-anchor="middle">🙋 ส่งต่อเจ้าหน้าที่</text>
+
+    <rect x="536" y="120" width="904" height="660" fill="#f6f6f7"/>
+
+    <rect x="560" y="148" width="420" height="60" rx="16" fill="#fff"/>
+    <text x="576" y="172" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" fill="#333436">สวัสดีค่ะ! ฉันเป็น HR Assistant</text>
+    <text x="576" y="192" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" fill="#333436">พร้อมตอบคำถามด้าน HR ได้เลยค่ะ</text>
+
+    <rect x="920" y="228" width="380" height="40" rx="16" fill="#ffd100"/>
+    <text x="936" y="253" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" fill="#242527">สอบถามเรื่องสิทธิลาพักร้อนครับ</text>
+
+    <rect x="560" y="288" width="500" height="100" rx="16" fill="#fff"/>
+    <text x="576" y="312" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" fill="#333436">สิทธิลาพักร้อนประจำปี:</text>
+    <text x="576" y="332" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" fill="#333436">• พนักงานทำงานครบ 1 ปี: 6 วัน</text>
+    <text x="576" y="352" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" fill="#333436">• ครบ 3 ปี: 10 วัน</text>
+    <text x="576" y="372" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" fill="#333436">• ครบ 5 ปี: 15 วัน</text>
+
+    <!-- Input -->
+    <rect x="536" y="780" width="904" height="120" fill="#fff"/>
+    <line x1="536" y1="780" x2="1440" y2="780" stroke="#e8e8ea"/>
+    <rect x="560" y="800" width="780" height="72" rx="16" fill="#f6f6f7" stroke="#d1d1d4" stroke-width="1"/>
+    <text x="580" y="840" font-family="Inter, Noto Sans Thai, sans-serif" font-size="14" fill="#a9aaad">พิมพ์ข้อความ...</text>
+    <rect x="1354" y="808" width="60" height="56" rx="12" fill="#ffd100"/>
+    <text x="1384" y="842" font-family="Inter, sans-serif" font-size="20" fill="#242527" text-anchor="middle">↑</text>
+  </g>
+</svg>
